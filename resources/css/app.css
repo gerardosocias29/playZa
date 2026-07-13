@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Premium light styling tokens and animations */
+@layer base {
+    :root {
+        --color-primary: 79, 70, 229; /* indigo-600 */
+        --color-secondary: 219, 39, 119; /* pink-650 */
+        --color-accent: 5, 150, 105; /* emerald-600 */
+        --color-warning: 217, 119, 6; /* amber-600 */
+    }
+
+    body {
+        background-color: #f8fafc; /* slate-50 */
+        color: #0f172a; /* slate-900 */
+        overflow-x: hidden;
+    }
+}
+
+/* Glassmorphism light panel styling */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.03), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+}
+
+/* Glow effects for light mode */
+.glow-primary {
+    box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.15);
+}
+
+.glow-secondary {
+    box-shadow: 0 10px 25px -5px rgba(219, 39, 119, 0.15);
+}
+
+.glow-accent {
+    box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.15);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(241, 245, 249, 0.5);
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(79, 70, 229, 0.15);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(79, 70, 229, 0.3);
+}
+
+/* Micro-animations */
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        opacity: 0.2;
+        filter: blur(40px);
+    }
+    50% {
+        opacity: 0.4;
+        filter: blur(60px);
+    }
+}
+
+.animate-float {
+    animation: float 4s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+    animation: pulse-glow 6s ease-in-out infinite;
+}
+
+/* Hover effects */
+.hover-scale {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.hover-scale:hover {
+    transform: translateY(-3px) scale(1.02);
+}
