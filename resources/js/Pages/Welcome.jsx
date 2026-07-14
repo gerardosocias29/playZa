@@ -23,7 +23,7 @@ export default function Welcome() {
                     <Link href="/login" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors duration-150">
                         Sign In
                     </Link>
-                    <Link href="/register" className="px-4 py-2 text-sm font-semibold text-white bg-indigo-650 hover:bg-indigo-700 rounded-xl transition-all duration-150 shadow-md shadow-indigo-500/10 hover-scale">
+                    <Link href="/register" className="px-4 py-2 text-sm font-semibold text-white bg-indigo-700 hover:bg-indigo-700 rounded-xl transition-all duration-150 shadow-md shadow-indigo-500/10 hover-scale">
                         Register
                     </Link>
                 </div>
@@ -42,7 +42,7 @@ export default function Welcome() {
                     Check real-time schedules, reserve fields, courts, and halls, and manage bookings for you or your team on Getafe's premium community sports network.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center w-full max-w-sm sm:max-w-none">
-                    <Link href="/login" className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-indigo-705 hover:from-indigo-700 hover:to-indigo-800 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition-all duration-200 text-base hover-scale text-center">
+                    <Link href="/login" className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition-all duration-200 text-base hover-scale text-center">
                         Get Started Now
                     </Link>
                     <a href="#facilities" className="px-8 py-4 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 font-semibold rounded-xl transition-colors duration-200 text-base text-center shadow-sm">
