@@ -101,44 +101,59 @@ export default function UserLayout({ children, title }) {
                 </div>
 
                 {/* Sidebar Navigation grouped like TailAdmin */}
-                <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-                    {menuGroups.map((group) => (
-                        <div key={group.title} className="space-y-2">
-                            <h3 className="px-3 text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                                {group.title}
-                            </h3>
-                            <ul className="space-y-1">
-                                {group.items.map((item) => {
-                                    const isActive = currentPath === item.href;
-                                    return (
-                                        <li key={item.name}>
-                                            <Link
-                                                href={item.href}
-                                                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150 ${
-                                                    isActive
-                                                        ? 'bg-slate-700/40 text-white border-l-4 border-emerald-500'
-                                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
-                                                }`}
-                                                onClick={() => setIsMobileMenuOpen(false)}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <svg className={`h-5 w-5 ${isActive ? 'text-white' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-                                                    </svg>
-                                                    <span>{item.name}</span>
-                                                </div>
-                                                {item.badge > 0 && (
-                                                    <span className="bg-rose-500 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center shrink-0">
-                                                        {item.badge}
-                                                    </span>
-                                                )}
-                                            </Link>
-                                        </li>
-                                    );
-                                })}
-                            </ul>
-                        </div>
-                    ))}
+                <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 flex flex-col justify-between">
+                    <div className="space-y-6">
+                        {menuGroups.map((group) => (
+                            <div key={group.title} className="space-y-2">
+                                <h3 className="px-3 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                                    {group.title}
+                                </h3>
+                                <ul className="space-y-1">
+                                    {group.items.map((item) => {
+                                        const isActive = currentPath === item.href;
+                                        return (
+                                            <li key={item.name}>
+                                                <Link
+                                                    href={item.href}
+                                                    className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150 ${
+                                                        isActive
+                                                            ? 'bg-slate-700/40 text-white border-l-4 border-emerald-500'
+                                                            : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+                                                    }`}
+                                                    onClick={() => setIsMobileMenuOpen(false)}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <svg className={`h-5 w-5 ${isActive ? 'text-white' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                                                        </svg>
+                                                        <span>{item.name}</span>
+                                                    </div>
+                                                    {item.badge > 0 && (
+                                                        <span className="bg-rose-500 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center shrink-0">
+                                                            {item.badge}
+                                                        </span>
+                                                    )}
+                                                </Link>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Logout Button */}
+                    <div className="pt-6 border-t border-slate-700/30">
+                        <button
+                            onClick={handleLogout}
+                            className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-slate-400 hover:text-rose-450 hover:bg-rose-500/10 transition-all duration-150 text-left cursor-pointer"
+                        >
+                            <svg className="h-5 w-5 text-slate-400 group-hover:text-rose-450 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            Logout
+                        </button>
+                    </div>
                 </div>
             </aside>
 
