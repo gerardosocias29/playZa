@@ -29,7 +29,7 @@ class RegisteredUserController extends Controller
      *
      * @throws ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -41,12 +41,19 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => 'user',
+            'status' => 'pending',
         ]);
 
         event(new Registered($user));
 
-        Auth::login($user);
+        if ($request->wantsJson() || $request->is('api/*')) {
+            return response()->json([
+                'message' => 'Registration submitted successfully! Your account is pending Admin approval.',
+                'user' => $user,
+            ], 201);
+        }
 
-        return redirect(route('dashboard', absolute: false));
+        return redirect()->route('login')->with('status', 'Registration submitted successfully! Your account is pending Admin approval.');
     }
 }

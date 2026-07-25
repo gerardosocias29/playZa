@@ -27,25 +27,53 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $request->authenticate();
 
-        $request->session()->regenerate();
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        $user = Auth::user();
+
+        if ($request->wantsJson() || $request->is('api/*')) {
+            $token = $user->createToken('auth_token')->plainTextToken;
+            return response()->json([
+                'message' => 'Authenticated successfully.',
+                'token' => $token,
+                'user' => $user,
+            ]);
+        }
+
+        if ($user->role === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
+
+        return redirect('/');
     }
 
     /**
      * Destroy an authenticated session.
      */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request): RedirectResponse|\Illuminate\Http\JsonResponse
     {
+        if ($request->user() && method_exists($request->user(), 'currentAccessToken') && $request->user()->currentAccessToken()) {
+            $request->user()->currentAccessToken()->delete();
+        }
+
         Auth::guard('web')->logout();
 
-        $request->session()->invalidate();
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
-        $request->session()->regenerateToken();
+        if ($request->wantsJson() || $request->is('api/*')) {
+            return response()->json([
+                'message' => 'Logged out successfully.',
+            ]);
+        }
 
         return redirect('/');
     }

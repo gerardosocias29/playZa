@@ -5,39 +5,55 @@
 /* Premium light styling tokens and animations */
 @layer base {
     :root {
-        --color-primary: 79, 70, 229; /* indigo-600 */
-        --color-secondary: 219, 39, 119; /* pink-650 */
-        --color-accent: 5, 150, 105; /* emerald-600 */
+        --color-primary: 11, 28, 48; /* #0b1c30 */
+        --color-secondary: 173, 217, 17; /* #add911 */
+        --color-accent: 0, 119, 204; /* #0077CC */
         --color-warning: 217, 119, 6; /* amber-600 */
     }
 
     body {
-        background-color: #f8fafc; /* slate-50 */
-        color: #0f172a; /* slate-900 */
+        background-color: #f8fafc;
+        color: #0b1c30;
         overflow-x: hidden;
     }
 }
 
-/* Glassmorphism light panel styling */
+/* Glassmorphism panel styling (Light Theme) */
 .glass-panel {
-    background: rgba(255, 255, 255, 0.75);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(15, 23, 42, 0.06);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.03), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(11, 28, 48, 0.08);
+    box-shadow: 0 10px 25px -5px rgba(11, 28, 48, 0.06), 0 4px 6px -4px rgba(11, 28, 48, 0.04);
 }
 
-/* Glow effects for light mode */
+.glass-panel-dark {
+    background: rgba(11, 28, 48, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.glass-panel-light {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(11, 28, 48, 0.1);
+    box-shadow: 0 10px 25px -5px rgba(11, 28, 48, 0.08);
+}
+
+/* Glow effects */
 .glow-primary {
-    box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.15);
+    box-shadow: 0 10px 25px -5px rgba(11, 28, 48, 0.5);
 }
 
 .glow-secondary {
-    box-shadow: 0 10px 25px -5px rgba(219, 39, 119, 0.15);
+    box-shadow: 0 10px 25px -5px rgba(173, 217, 17, 0.3);
 }
 
 .glow-accent {
-    box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.15);
+    box-shadow: 0 10px 25px -5px rgba(0, 119, 204, 0.35);
 }
 
 /* Custom scrollbar */

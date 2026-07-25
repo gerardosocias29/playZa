@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { getCurrentUser, logoutUser, getNotifications } from '@/mockData';
 
 export default function UserLayout({ children, title }) {
-    const [user, setUser] = useState(null);
+    const { auth } = usePage().props;
+    const user = auth?.user || getCurrentUser() || { id: 2, name: 'Regular User', email: 'user@playza.com', role: 'user' };
+    
     const [unreadCount, setUnreadCount] = useState(0);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -14,13 +16,8 @@ export default function UserLayout({ children, title }) {
     const profileRef = useRef(null);
 
     useEffect(() => {
-        const currentUser = getCurrentUser();
-        if (!currentUser || currentUser.role !== 'user') {
-            router.visit('/login');
-        } else {
-            setUser(currentUser);
-            // Get unread notifications
-            const notifications = getNotifications(currentUser.id);
+        if (user?.id) {
+            const notifications = getNotifications(user.id);
             setUnreadCount(notifications.filter(n => !n.is_read).length);
             setRecentNotifications(notifications.slice(0, 3));
         }
@@ -35,24 +32,13 @@ export default function UserLayout({ children, title }) {
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    }, [user]);
 
     const handleLogout = (e) => {
         e.preventDefault();
         logoutUser();
-        router.visit('/login');
+        router.post('/logout');
     };
-
-    if (!user) {
-        return (
-            <div className="flex h-screen items-center justify-center bg-slate-50 text-slate-800 font-sans">
-                <div className="text-center">
-                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent mx-auto mb-4"></div>
-                    <p className="text-slate-500 text-sm font-medium">Verifying session...</p>
-                </div>
-            </div>
-        );
-    }
 
     const menuGroups = [
         {

@@ -1,73 +1,83 @@
 <?php
 
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\FacilityController as AdminFacilityController;
+use App\Http\Controllers\Admin\ReportController as AdminReportController;
+use App\Http\Controllers\Admin\ReservationController as AdminReservationController;
+use App\Http\Controllers\Admin\ScheduleController as AdminScheduleController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\User\DashboardController as UserDashboardController;
+use App\Http\Controllers\User\NotificationController as UserNotificationController;
+use App\Http\Controllers\User\ReservationController as UserReservationController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-// Welcome / Guest landing page
+// Welcome / Landing page
 Route::get('/', function () {
+    if (Auth::check()) {
+        $user = Auth::user();
+        if ($user->role === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
+    }
     return Inertia::render('Welcome');
 });
 
-// Authentication Mock Routes
-Route::get('/login', function () {
-    return Inertia::render('Auth/Login');
-})->name('login');
+// Legal Pages Routes
+Route::get('/terms-of-service', function () {
+    return Inertia::render('TermsOfService');
+})->name('terms.show');
 
-Route::get('/register', function () {
-    return Inertia::render('Auth/Register');
-})->name('register');
+Route::get('/privacy-policy', function () {
+    return Inertia::render('PrivacyPolicy');
+})->name('privacy.show');
 
-// Guest profile fallback
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->name('dashboard');
+// Protected Admin Routes
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
-// Admin Mock Routes (No DB middleware)
-Route::prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Admin/Dashboard');
-    })->name('dashboard');
-    
-    Route::get('/users', function () {
-        return Inertia::render('Admin/Users');
-    })->name('users');
-    
-    Route::get('/facilities', function () {
-        return Inertia::render('Admin/Facilities');
-    })->name('facilities');
-    
-    Route::get('/reservations', function () {
-        return Inertia::render('Admin/Reservations');
-    })->name('reservations');
-    
-    Route::get('/schedules', function () {
-        return Inertia::render('Admin/Schedules');
-    })->name('schedules');
-    
-    Route::get('/reports', function () {
-        return Inertia::render('Admin/Reports');
-    })->name('reports');
+    Route::get('/users', [AdminUserController::class, 'index'])->name('users');
+    Route::patch('/users/{user}/approve', [AdminUserController::class, 'approve'])->name('users.approve');
+    Route::patch('/users/{user}/reject', [AdminUserController::class, 'reject'])->name('users.reject');
+    Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
+
+    Route::get('/facilities', [AdminFacilityController::class, 'index'])->name('facilities');
+    Route::post('/facilities', [AdminFacilityController::class, 'store'])->name('facilities.store');
+    Route::put('/facilities/{facility}', [AdminFacilityController::class, 'update'])->name('facilities.update');
+    Route::patch('/facilities/{facility}/toggle', [AdminFacilityController::class, 'toggleAvailability'])->name('facilities.toggle');
+    Route::delete('/facilities/{facility}', [AdminFacilityController::class, 'destroy'])->name('facilities.destroy');
+
+    Route::get('/reservations', [AdminReservationController::class, 'index'])->name('reservations');
+    Route::patch('/reservations/{reservation}/approve', [AdminReservationController::class, 'approve'])->name('reservations.approve');
+    Route::patch('/reservations/{reservation}/reject', [AdminReservationController::class, 'reject'])->name('reservations.reject');
+    Route::patch('/reservations/{reservation}/cancel', [AdminReservationController::class, 'cancel'])->name('reservations.cancel');
+
+    Route::get('/schedules', [AdminScheduleController::class, 'index'])->name('schedules');
+    Route::post('/schedules', [AdminScheduleController::class, 'store'])->name('schedules.store');
+    Route::delete('/schedules/{schedule}', [AdminScheduleController::class, 'destroy'])->name('schedules.destroy');
+
+    Route::get('/reports', [AdminReportController::class, 'index'])->name('reports');
 });
 
-// User Mock Routes (No DB middleware)
-Route::prefix('user')->name('user.')->group(function () {
+// Protected Regular User Routes (Clean Direct Paths: /dashboard, /my-reservations, /profile, /notifications)
+Route::middleware(['auth', 'role:user'])->group(function () {
     Route::get('/dashboard', function () {
-        return Inertia::render('User/Dashboard');
+        return redirect('/');
     })->name('dashboard');
-    
-    Route::get('/facilities', function () {
-        return Inertia::render('User/Facilities');
-    })->name('facilities');
-    
-    Route::get('/reservations', function () {
-        return Inertia::render('User/Reservations');
-    })->name('reservations');
-    
-    Route::get('/notifications', function () {
-        return Inertia::render('User/Notifications');
-    })->name('notifications');
-    
-    Route::get('/profile', function () {
-        return Inertia::render('User/Profile');
-    })->name('profile');
+
+    Route::get('/my-reservations', [UserReservationController::class, 'index'])->name('my-reservations');
+    Route::post('/reservations', [UserReservationController::class, 'store'])->name('reservations.store');
+    Route::patch('/reservations/{reservation}/cancel', [UserReservationController::class, 'cancel'])->name('reservations.cancel');
+
+    Route::get('/notifications', [UserNotificationController::class, 'index'])->name('notifications');
+    Route::patch('/notifications/{notification}/read', [UserNotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [UserNotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+require __DIR__.'/auth.php';

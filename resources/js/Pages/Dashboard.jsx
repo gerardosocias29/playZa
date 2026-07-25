@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
-import { Head, router } from '@inertiajs/react';
-import { getCurrentUser } from '@/mockData';
+import { Head, router, usePage } from '@inertiajs/react';
 
 export default function Dashboard() {
+    const { auth } = usePage().props;
+
     useEffect(() => {
-        const user = getCurrentUser();
+        const user = auth?.user;
         if (user) {
             if (user.role === 'admin') {
                 router.visit('/admin/dashboard');
@@ -14,14 +15,14 @@ export default function Dashboard() {
         } else {
             router.visit('/login');
         }
-    }, []);
+    }, [auth]);
 
     return (
-        <div className="flex h-screen items-center justify-center bg-slate-950 text-slate-200">
+        <div className="flex h-screen items-center justify-center bg-slate-50 text-[#0b1c30] font-sans">
             <Head title="Redirecting - PlayZa" />
             <div className="text-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent mx-auto mb-4"></div>
-                <p className="text-slate-400 text-sm">Redirecting to your dashboard...</p>
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#0077CC] border-t-transparent mx-auto mb-4"></div>
+                <p className="text-slate-600 text-sm font-bold">Redirecting to your dashboard...</p>
             </div>
         </div>
     );

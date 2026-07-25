@@ -8,10 +8,90 @@ const DEFAULT_USERS = [
 ];
 
 const DEFAULT_FACILITIES = [
-    { id: 1, name: 'Soccer Field A', description: 'Outdoor artificial turf soccer field with night floodlights and spectator stands.', capacity: 22, active: true, image: 'soccer' },
-    { id: 2, name: 'Indoor Basketball Court', description: 'Premium wooden floor court, climate-controlled, professional hoop rings.', capacity: 12, active: true, image: 'basketball' },
-    { id: 3, name: 'Clay Tennis Court 1', description: 'High-quality clay court, rental rackets available at reception.', capacity: 4, active: true, image: 'tennis' },
-    { id: 4, name: 'Padel Glass Court A', description: 'Panoramic glass padel court with LED lighting.', capacity: 4, active: true, image: 'padel' }
+    { 
+        id: 1, 
+        name: 'Basketball', 
+        type: 'Indoor',
+        category: 'Sports',
+        description: 'Climate-controlled indoor hardwood court with electronic scoreboards, shot clocks, and spectator stands.', 
+        requires_event_type: false,
+        active: true, 
+        images: [
+            'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1519766304817-4f37bda74a29?auto=format&fit=crop&w=800&q=80'
+        ]
+    },
+    { 
+        id: 2, 
+        name: 'Volleyball', 
+        type: 'Indoor',
+        category: 'Sports',
+        description: 'Professional indoor volleyball court with high-grade synthetic floor, adjustable net tensioning, and referee chair.', 
+        requires_event_type: false,
+        active: true, 
+        images: [
+            'https://images.unsplash.com/photo-1592656094267-764a45160876?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=800&q=80'
+        ]
+    },
+    { 
+        id: 3, 
+        name: 'Tennis', 
+        type: 'Outdoor',
+        category: 'Sports',
+        description: 'Premium outdoor clay tennis court featuring baseline markings, high-tensile net, and surrounding windbreaks.', 
+        requires_event_type: false,
+        active: true, 
+        images: [
+            'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1530915534664-4ac642378097?auto=format&fit=crop&w=800&q=80'
+        ]
+    },
+    { 
+        id: 4, 
+        name: 'Table Tennis', 
+        type: 'Indoor',
+        category: 'Sports',
+        description: 'ITTF-approved indoor table tennis arena equipped with tournament tables, non-slip flooring, and ball barriers.', 
+        requires_event_type: false,
+        active: true, 
+        images: [
+            'https://images.unsplash.com/photo-1534158914592-062992fbe900?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1609710228159-0fa9bd7c0827?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1511067007398-7e4b90cfa4bc?auto=format&fit=crop&w=800&q=80'
+        ]
+    },
+    { 
+        id: 5, 
+        name: 'Badminton', 
+        type: 'Indoor',
+        category: 'Sports',
+        description: 'Dedicated indoor badminton court with green PVC matting, anti-glare overhead lighting, and net posts.', 
+        requires_event_type: false,
+        active: true, 
+        images: [
+            'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1521537634581-0dced2efa2a3?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1599474924187-334a4ae5bd3c?auto=format&fit=crop&w=800&q=80'
+        ]
+    },
+    { 
+        id: 6, 
+        name: 'Special Events', 
+        type: 'Indoor',
+        category: 'Events',
+        description: 'Adaptable hall for custom events. Select event types like Graduation, Meeting, Wedding, Birthday, or specify custom events (e.g. Big Disco Party).', 
+        requires_event_type: true,
+        active: true, 
+        images: [
+            'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80'
+        ]
+    }
 ];
 
 const DEFAULT_RESERVATIONS = [
@@ -56,12 +136,12 @@ const DEFAULT_NOTIFICATIONS = [
 ];
 
 export const initializeMockStore = () => {
-    if (!localStorage.getItem('playza_initialized')) {
+    if (!localStorage.getItem('playza_facilities_v5')) {
         localStorage.setItem('playza_users', JSON.stringify(DEFAULT_USERS));
         localStorage.setItem('playza_facilities', JSON.stringify(DEFAULT_FACILITIES));
         localStorage.setItem('playza_reservations', JSON.stringify(DEFAULT_RESERVATIONS));
         localStorage.setItem('playza_notifications', JSON.stringify(DEFAULT_NOTIFICATIONS));
-        localStorage.setItem('playza_initialized', 'true');
+        localStorage.setItem('playza_facilities_v5', 'true');
     }
 };
 
@@ -114,7 +194,7 @@ export const saveReservations = (reservations) => {
     localStorage.setItem('playza_reservations', JSON.stringify(reservations));
 };
 
-export const addReservation = (userId, userName, facilityId, facilityName, date, timeSlot) => {
+export const addReservation = (userId, userName, facilityId, facilityName, date, timeSlot, eventType = null, customEventName = null) => {
     const reservations = getReservations();
     
     // Check overlap
@@ -137,6 +217,8 @@ export const addReservation = (userId, userName, facilityId, facilityName, date,
         facilityName,
         date,
         timeSlot,
+        eventType,
+        customEventName,
         status: 'pending',
         created_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
     };
@@ -225,8 +307,8 @@ export const authenticateMockUser = (email, password) => {
         return { success: false, message: 'Your account registration has been rejected.' };
     }
     
-    // Simulate simple password check (matching mock schema)
-    const expectedPassword = email.split('@')[0] + '123'; // e.g. admin123, user123
+    // Check custom password if set, or fallback to mock pattern (email prefix + 123)
+    const expectedPassword = user.password || (email.split('@')[0] + '123'); 
     if (password !== expectedPassword) {
         return { success: false, message: 'Invalid credentials. Incorrect password.' };
     }
@@ -245,6 +327,7 @@ export const registerMockUser = (name, email, password) => {
         id: Date.now(),
         name,
         email,
+        password,
         role: 'user',
         status: 'pending', // Starts as pending admin approval
         joined: new Date().toISOString().substring(0, 10)
@@ -253,6 +336,33 @@ export const registerMockUser = (name, email, password) => {
     users.push(newUser);
     saveUsers(users);
     
-    // Notify admin (mock)
-    return { success: true, user: newUser, message: 'Registration submitted successfully. Pending Admin approval.' };
+    return { success: true, user: newUser, message: 'Registration submitted successfully! Your account is pending Admin approval.' };
 };
+
+export const requestPasswordResetMock = (email) => {
+    const users = getUsers();
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) {
+        return { success: false, message: "We couldn't find an account matching that email address." };
+    }
+    const token = 'reset-' + Math.random().toString(36).substring(2, 9);
+    localStorage.setItem(`playza_reset_token_${email.toLowerCase()}`, token);
+    return { 
+        success: true, 
+        message: 'Password reset link generated! Click below to simulate opening the reset email.',
+        resetUrl: `/reset-password/${token}?email=${encodeURIComponent(email)}`
+    };
+};
+
+export const resetPasswordMock = (email, password) => {
+    const users = getUsers();
+    const index = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+    if (index === -1) {
+        return { success: false, message: 'User not found.' };
+    }
+    users[index].password = password;
+    saveUsers(users);
+    localStorage.removeItem(`playza_reset_token_${email.toLowerCase()}`);
+    return { success: true, message: 'Password reset successfully! You can now log in with your new password.' };
+};
+

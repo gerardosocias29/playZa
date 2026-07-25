@@ -50,6 +50,29 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        $user = Auth::user();
+        if ($user->status === 'pending') {
+            Auth::guard('web')->logout();
+            if ($this->hasSession()) {
+                $this->session()->invalidate();
+                $this->session()->regenerateToken();
+            }
+            throw ValidationException::withMessages([
+                'email' => 'Your registration is pending approval by the Admin.',
+            ]);
+        }
+
+        if ($user->status === 'rejected') {
+            Auth::guard('web')->logout();
+            if ($this->hasSession()) {
+                $this->session()->invalidate();
+                $this->session()->regenerateToken();
+            }
+            throw ValidationException::withMessages([
+                'email' => 'Your account registration has been rejected.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

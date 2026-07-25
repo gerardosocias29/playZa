@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { getCurrentUser, logoutUser, getReservations } from '@/mockData';
 
 export default function AdminLayout({ children, title }) {
-    const [user, setUser] = useState(null);
+    const { auth } = usePage().props;
+    const user = auth?.user || getCurrentUser() || { id: 1, name: 'Admin User', email: 'admin@playza.com', role: 'admin' };
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -13,17 +14,9 @@ export default function AdminLayout({ children, title }) {
     const profileRef = useRef(null);
 
     useEffect(() => {
-        const currentUser = getCurrentUser();
-        if (!currentUser || currentUser.role !== 'admin') {
-            router.visit('/login');
-        } else {
-            setUser(currentUser);
-            // Grab some mock notifications to show in the dropdown
-            const reservations = getReservations().filter(r => r.status === 'pending');
-            setRecentAlerts(reservations.slice(0, 3));
-        }
+        const reservations = getReservations().filter(r => r.status === 'pending');
+        setRecentAlerts(reservations.slice(0, 3));
 
-        // Close dropdowns on outside click
         const handleClickOutside = (event) => {
             if (notificationRef.current && !notificationRef.current.contains(event.target)) {
                 setIsNotificationOpen(false);
@@ -39,19 +32,10 @@ export default function AdminLayout({ children, title }) {
     const handleLogout = (e) => {
         e.preventDefault();
         logoutUser();
-        router.visit('/login');
+        router.post('/logout');
     };
 
-    if (!user) {
-        return (
-            <div className="flex h-screen items-center justify-center bg-slate-50 text-slate-800 font-sans">
-                <div className="text-center">
-                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-650 border-t-transparent mx-auto mb-4"></div>
-                    <p className="text-slate-500 text-sm font-medium">Verifying administrator session...</p>
-                </div>
-            </div>
-        );
-    }
+
 
     const menuGroups = [
         {
@@ -77,18 +61,16 @@ export default function AdminLayout({ children, title }) {
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row font-sans">
             
-            {/* Sidebar (TailAdmin Styled) */}
-            <aside className={`w-full md:w-64 bg-[#1c2434] text-slate-400 flex flex-col fixed md:sticky top-0 h-[calc(100vh-65px)] md:h-screen z-40 transition-transform duration-300 md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+            {/* Sidebar (Brand Styled #0b1c30) */}
+            <aside className={`w-full md:w-64 bg-[#0b1c30] text-slate-300 flex flex-col fixed md:sticky top-0 h-[calc(100vh-65px)] md:h-screen z-40 transition-transform duration-300 md:translate-x-0 border-r border-white/10 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
                 {/* Brand Logo Section */}
-                <div className="flex items-center justify-between px-6 py-6 border-b border-slate-700/30">
+                <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
                     <Link href="/admin/dashboard" className="flex items-center gap-3">
-                        <div className="bg-indigo-600 p-2.5 rounded-xl text-white font-bold tracking-wider text-base shadow-lg shadow-indigo-500/20">
-                            PZ
-                        </div>
-                        <div>
-                            <span className="font-title font-bold text-xl tracking-tight text-white block">PlayZa</span>
-                            <span className="text-[9px] uppercase font-bold tracking-widest text-indigo-400 block -mt-1">Admin Portal</span>
-                        </div>
+                        <img 
+                            src="/images/playza_horizontal.png" 
+                            alt="PlayZa Logo" 
+                            className="h-10 object-contain drop-shadow"
+                        />
                     </Link>
                     <button 
                         onClick={() => setIsMobileMenuOpen(false)}
