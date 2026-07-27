@@ -1,26 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import UserLayout from '@/Layouts/UserLayout';
 import FacilityCarousel from '@/Components/FacilityCarousel';
-import TimelineScheduler from '@/Components/TimelineScheduler';
+import AvailabilityModal from '@/Components/AvailabilityModal';
 
-export default function Dashboard({ 
-    facilities = [], 
-    userReservations = [], 
-    notifications = [], 
-    reservations = [], 
-    schedules = [] 
+export default function Dashboard({
+    facilities = [],
+    userReservations = [],
+    notifications = [],
+    reservations = [],
+    schedules = []
 }) {
-    const { auth, errors } = usePage().props;
+    const { auth } = usePage().props;
     const user = auth.user;
 
     const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
     const [selectedFacilityId, setSelectedFacilityId] = useState(facilities.length > 0 ? facilities[0].id : '');
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-    const [bookingSummaryData, setBookingSummaryData] = useState(null);
-    const [eventType, setEventType] = useState('Graduation');
-    const [customEventName, setCustomEventName] = useState('');
-    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [activeSection, setActiveSection] = useState('home');
 
     const selectedFacility = facilities.find(f => f.id === parseInt(selectedFacilityId)) || facilities[0];
@@ -50,31 +45,6 @@ export default function Dashboard({
         setIsAvailabilityModalOpen(true);
     };
 
-    const handleContinueBooking = (summary) => {
-        setBookingSummaryData(summary);
-        setIsConfirmOpen(true);
-    };
-
-    const handleConfirmBooking = () => {
-        if (!bookingSummaryData || !selectedFacility) return;
-
-        router.post(route('reservations.store'), {
-            facility_id: selectedFacility.id,
-            reservation_date: bookingSummaryData.date || selectedDate,
-            start_time: bookingSummaryData.startTime,
-            end_time: bookingSummaryData.endTime,
-            duration_hours: bookingSummaryData.durationHours,
-            event_type: selectedFacility.requires_event_type ? eventType : null,
-            custom_event_name: selectedFacility.requires_event_type ? customEventName : null,
-        }, {
-            onSuccess: () => {
-                setIsConfirmOpen(false);
-                setIsAvailabilityModalOpen(false);
-                setBookingSummaryData(null);
-            }
-        });
-    };
-
     return (
         <UserLayout 
             title="Getafe Sports & Event Facility Booking" 
@@ -96,7 +66,7 @@ export default function Dashboard({
                             Reserve Premium Sports & Event Courts in Getafe
                         </h1>
                         <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-medium">
-                            Browse official facilities, inspect live 24-hour schedules, and drag & drop time slots directly to date targets.
+                            Browse official facilities, inspect live 24-hour schedules, and reserve open time slots in a few taps.
                         </p>
 
                         <div className="flex flex-wrap gap-4 pt-2">
@@ -104,7 +74,7 @@ export default function Dashboard({
                                 onClick={() => setIsAvailabilityModalOpen(true)}
                                 className="px-6 py-4 bg-[#add911] hover:bg-[#bce420] text-[#0b1c30] font-black rounded-2xl text-xs uppercase tracking-wider shadow-lg transition-all active:scale-95 flex items-center gap-2"
                             >
-                                ⚡ Check Availability & Book Modal
+                                Check Availability
                             </button>
                             <Link
                                 href="/my-reservations"
@@ -130,7 +100,7 @@ export default function Dashboard({
                             onClick={() => setIsAvailabilityModalOpen(true)}
                             className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-extrabold shadow-sm transition-all self-start sm:self-auto"
                         >
-                            Open Scheduler Modal 📅
+                            Check Availability
                         </button>
                     </div>
 
@@ -194,138 +164,15 @@ export default function Dashboard({
 
             </div>
 
-            {/* CHECK AVAILABILITY MODAL */}
-            {isAvailabilityModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
-                    <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl space-y-6 my-8 max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-                            <div>
-                                <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                                    <span>📅</span> Check Availability & Book Time Slots
-                                </h3>
-                                <p className="text-xs text-slate-500">
-                                    Select facility, date, hours, or drag & drop open time slots onto date targets
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => setIsAvailabilityModalOpen(false)}
-                                className="h-9 w-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center transition-colors"
-                            >
-                                ✕
-                            </button>
-                        </div>
-
-                        {/* Facility & Date Selector Controls */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                            <div>
-                                <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider mb-1">
-                                    Select Facility
-                                </label>
-                                <select
-                                    value={selectedFacilityId}
-                                    onChange={(e) => setSelectedFacilityId(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-900"
-                                >
-                                    {facilities.map((f) => (
-                                        <option key={f.id} value={f.id}>{f.name} ({f.type})</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider mb-1">
-                                    Select Target Date
-                                </label>
-                                <input
-                                    type="date"
-                                    value={selectedDate}
-                                    onChange={(e) => setSelectedDate(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-900"
-                                />
-                            </div>
-                        </div>
-
-                        {errors.start_time && (
-                            <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl">
-                                ⚠️ {errors.start_time}
-                            </div>
-                        )}
-
-                        {/* Interactive Drag & Drop Scheduler */}
-                        {selectedFacility && (
-                            <TimelineScheduler
-                                selectedFacility={selectedFacility}
-                                selectedDate={selectedDate}
-                                onDateChange={(newDate) => setSelectedDate(newDate)}
-                                reservations={reservations}
-                                onContinueBooking={handleContinueBooking}
-                            />
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* CONFIRMATION MODAL */}
-            {isConfirmOpen && bookingSummaryData && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md">
-                    <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-6">
-                        <div className="flex justify-between items-center border-b pb-3">
-                            <h3 className="font-black text-slate-900 text-lg">Confirm Reservation Request</h3>
-                            <button onClick={() => setIsConfirmOpen(false)} className="text-slate-400 hover:text-slate-600">✕</button>
-                        </div>
-
-                        <div className="space-y-3 text-xs text-slate-700 bg-slate-50 p-4 rounded-2xl border border-slate-200 font-medium">
-                            <div><span className="font-bold">Facility:</span> {selectedFacility?.name}</div>
-                            <div><span className="font-bold">Date:</span> {bookingSummaryData.date || selectedDate}</div>
-                            <div><span className="font-bold">Time Range:</span> {bookingSummaryData.startTime} - {bookingSummaryData.endTime}</div>
-                            <div><span className="font-bold">Duration:</span> {bookingSummaryData.durationHours} Hour(s)</div>
-                            <div><span className="font-bold">Estimated Cost:</span> €{bookingSummaryData.estimatedPrice}</div>
-                        </div>
-
-                        {selectedFacility?.requires_event_type && (
-                            <div className="space-y-3">
-                                <label className="block text-xs font-bold text-slate-700 uppercase">Event Type Selection</label>
-                                <select
-                                    value={eventType}
-                                    onChange={(e) => setEventType(e.target.value)}
-                                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold"
-                                >
-                                    <option value="Graduation">Graduation</option>
-                                    <option value="Meeting">Meeting</option>
-                                    <option value="Wedding">Wedding</option>
-                                    <option value="Birthday">Birthday</option>
-                                    <option value="Others">Others</option>
-                                </select>
-
-                                {eventType === 'Others' && (
-                                    <input
-                                        type="text"
-                                        placeholder="Specify custom event name..."
-                                        value={customEventName}
-                                        onChange={(e) => setCustomEventName(e.target.value)}
-                                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs mt-2"
-                                    />
-                                )}
-                            </div>
-                        )}
-
-                        <div className="flex gap-3 pt-4 border-t">
-                            <button
-                                onClick={() => setIsConfirmOpen(false)}
-                                className="w-1/2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors"
-                            >
-                                Back
-                            </button>
-                            <button
-                                onClick={handleConfirmBooking}
-                                className="w-1/2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition-colors"
-                            >
-                                Submit Request
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <AvailabilityModal
+                isOpen={isAvailabilityModalOpen}
+                onClose={() => setIsAvailabilityModalOpen(false)}
+                facility={selectedFacility}
+                facilities={facilities}
+                reservations={reservations}
+                schedules={schedules}
+                user={user}
+            />
         </UserLayout>
     );
 }

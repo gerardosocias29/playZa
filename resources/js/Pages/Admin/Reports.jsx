@@ -6,12 +6,13 @@ export default function Reports({ stats = {}, recentReservations = [] }) {
     const [activeTab, setActiveTab] = useState('reservations');
 
     const exportToCSV = (type) => {
-        let headers = ['Reservation ID', 'User Name', 'Facility Name', 'Date', 'Time Slot', 'Status'];
+        let headers = ['Reservation ID', 'User Name', 'Facility Name', 'Start Date', 'End Date', 'Time Slot', 'Status'];
         let rows = recentReservations.map(r => [
             r.id,
             r.user?.name || r.userName || '',
             r.facility?.name || r.facilityName || '',
             r.reservation_date || r.date || '',
+            r.end_date || r.reservation_date || r.date || '',
             `${r.start_time} - ${r.end_time}`,
             r.status
         ]);
@@ -105,7 +106,10 @@ export default function Reports({ stats = {}, recentReservations = [] }) {
                                             <tr key={res.id} className="hover:bg-slate-50/80">
                                                 <td className="py-3 px-4 font-bold text-slate-900">{res.user?.name || 'N/A'}</td>
                                                 <td className="py-3 px-4">{res.facility?.name || 'N/A'}</td>
-                                                <td className="py-3 px-4 font-mono text-xs">{res.reservation_date}</td>
+                                                <td className="py-3 px-4 font-mono text-xs">
+                                                    {res.reservation_date}
+                                                    {res.end_date && res.end_date !== res.reservation_date && ` → ${res.end_date}`}
+                                                </td>
                                                 <td className="py-3 px-4 font-mono text-xs">{res.start_time} - {res.end_time}</td>
                                                 <td className="py-3 px-4">
                                                     <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-800">

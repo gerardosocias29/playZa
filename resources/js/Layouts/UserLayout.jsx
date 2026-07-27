@@ -1,290 +1,280 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Link, router, usePage } from '@inertiajs/react';
-import { getCurrentUser, logoutUser, getNotifications } from '@/mockData';
+import React, { useState, useEffect, useRef } from 'react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 
-export default function UserLayout({ children, title }) {
-    const { auth } = usePage().props;
-    const user = auth?.user || getCurrentUser() || { id: 2, name: 'Regular User', email: 'user@playza.com', role: 'user' };
-    
-    const [unreadCount, setUnreadCount] = useState(0);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+export default function UserLayout({ children, title, activeSection = '' }) {
+    const { auth, notificationsCount = 0 } = usePage().props;
+    const user = auth?.user || { id: 2, name: 'Regular User', email: 'user@playza.com', role: 'user' };
+
+    const [isScrolled, setIsScrolled] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const [recentNotifications, setRecentNotifications] = useState([]);
-
-    const notificationRef = useRef(null);
     const profileRef = useRef(null);
 
+    // Scroll listener for header shadow
     useEffect(() => {
-        if (user?.id) {
-            const notifications = getNotifications(user.id);
-            setUnreadCount(notifications.filter(n => !n.is_read).length);
-            setRecentNotifications(notifications.slice(0, 3));
-        }
-
-        const handleClickOutside = (event) => {
-            if (notificationRef.current && !notificationRef.current.contains(event.target)) {
-                setIsNotificationOpen(false);
+        const handleScroll = () => {
+            if (window.scrollY > 20) {
+                setIsScrolled(true);
+            } else {
+                setIsScrolled(false);
             }
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        handleScroll();
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Click outside listener for user profile dropdown
+    useEffect(() => {
+        const handleClickOutside = (event) => {
             if (profileRef.current && !profileRef.current.contains(event.target)) {
                 setIsProfileOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [user]);
+    }, []);
 
     const handleLogout = (e) => {
         e.preventDefault();
-        logoutUser();
+        setIsProfileOpen(false);
         router.post('/logout');
     };
 
-    const menuGroups = [
-        {
-            title: 'MENU',
-            items: [
-                { name: 'Dashboard / Slots', href: '/user/dashboard', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-                { name: 'Facility Registry', href: '/user/facilities', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
-                { name: 'My Reservations', href: '/user/reservations', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' }
-            ]
-        },
-        {
-            title: 'PERSONAL',
-            items: [
-                { name: 'Notifications', href: '/user/notifications', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9', badge: unreadCount },
-                { name: 'My Profile', href: '/user/profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' }
-            ]
-        }
-    ];
-
     const currentPath = window.location.pathname;
+    const isHomePage = currentPath === '/' || currentPath === '/dashboard';
+    const activeNavSection = isHomePage ? (activeSection || 'home') : '';
+
+    const isHomeActive = isHomePage && activeNavSection === 'home';
+    const isFacilitiesActive = isHomePage ? activeNavSection === 'facilities' : currentPath === '/user/facilities';
+    const isAboutActive = isHomePage && activeNavSection === 'about';
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row font-sans">
-            
-            {/* Sidebar (TailAdmin Styled) */}
-            <aside className={`w-full md:w-64 bg-[#1c2434] text-slate-400 flex flex-col fixed md:sticky top-0 h-[calc(100vh-65px)] md:h-screen z-40 transition-transform duration-300 md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-                {/* Brand Logo Section */}
-                <div className="flex items-center justify-between px-6 py-6 border-b border-slate-700/30">
-                    <Link href="/user/dashboard" className="flex items-center gap-3">
-                        <div className="bg-emerald-600 p-2.5 rounded-xl text-white font-bold tracking-wider text-base shadow-lg shadow-emerald-500/20">
-                            PZ
-                        </div>
-                        <div>
-                            <span className="font-title font-bold text-xl tracking-tight text-white block">PlayZa</span>
-                            <span className="text-[9px] uppercase font-bold tracking-widest text-emerald-400 block -mt-1">Sports Facilities</span>
-                        </div>
+        <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans relative overflow-x-hidden">
+            {/* Ambient Background Glows */}
+            <div className="fixed top-0 left-0 w-full h-[600px] bg-gradient-to-b from-indigo-50/40 via-slate-50/50 to-transparent pointer-events-none z-0"></div>
+            <div className="fixed top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-[#0077CC]/5 blur-[120px] pointer-events-none z-0"></div>
+            <div className="fixed bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[500px] h-[500px] rounded-full bg-[#add911]/10 blur-[120px] pointer-events-none z-0"></div>
+
+            {title && <Head title={`${title} - PlayZa`} />}
+
+            {/* Top Navigation Header (Exact Landing Page Header) */}
+            <header
+                className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${
+                    isScrolled
+                        ? 'bg-white/95 backdrop-blur-md shadow-md border-b border-slate-200/80 py-3.5'
+                        : 'bg-transparent border-b border-transparent py-5'
+                }`}
+            >
+                <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+                    
+                    {/* Brand Logo */}
+                    <Link href="/" className="flex items-center gap-3 group">
+                        <img
+                            src="/images/playza_horizontal.png"
+                            alt="PlayZa Logo"
+                            className="h-10 object-contain transition-transform group-hover:scale-[1.02]"
+                        />
                     </Link>
-                    <button 
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="md:hidden p-1 hover:text-white"
-                    >
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
 
-                {/* Sidebar Navigation grouped like TailAdmin */}
-                <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 flex flex-col justify-between">
-                    <div className="space-y-6">
-                        {menuGroups.map((group) => (
-                            <div key={group.title} className="space-y-2">
-                                <h3 className="px-3 text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                                    {group.title}
-                                </h3>
-                                <ul className="space-y-1">
-                                    {group.items.map((item) => {
-                                        const isActive = currentPath === item.href;
-                                        return (
-                                            <li key={item.name}>
-                                                <Link
-                                                    href={item.href}
-                                                    className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150 ${
-                                                        isActive
-                                                            ? 'bg-slate-700/40 text-white border-l-4 border-emerald-500'
-                                                            : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
-                                                    }`}
-                                                    onClick={() => setIsMobileMenuOpen(false)}
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <svg className={`h-5 w-5 ${isActive ? 'text-white' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-                                                        </svg>
-                                                        <span>{item.name}</span>
-                                                    </div>
-                                                    {item.badge > 0 && (
-                                                        <span className="bg-rose-500 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center shrink-0">
-                                                            {item.badge}
-                                                        </span>
-                                                    )}
-                                                </Link>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Logout Button */}
-                    <div className="pt-6 border-t border-slate-700/30">
-                        <button
-                            onClick={handleLogout}
-                            className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-slate-400 hover:text-rose-450 hover:bg-rose-500/10 transition-all duration-150 text-left cursor-pointer"
+                    {/* Navigation Menu (Home | Facilities | About) */}
+                    <nav className="hidden md:flex items-center gap-8">
+                        <Link
+                            href="/#home"
+                            className={`relative text-sm font-extrabold transition-all duration-200 py-1 ${
+                                isHomeActive
+                                    ? 'text-[#0077CC]'
+                                    : 'text-slate-600 hover:text-[#0b1c30]'
+                            }`}
                         >
-                            <svg className="h-5 w-5 text-slate-400 group-hover:text-rose-450 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                            </svg>
-                            Logout
-                        </button>
-                    </div>
-                </div>
-            </aside>
+                            Home
+                            {isHomeActive && (
+                                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#0077CC] rounded-full transition-all"></span>
+                            )}
+                        </Link>
 
-            {/* Main Layout Area */}
-            <div className="flex-1 flex flex-col min-w-0 md:h-screen md:overflow-y-auto">
-                
-                {/* Header (TailAdmin Styled with Search, Notifications and Profile Dropdowns) */}
-                <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-                    {/* Header Left: Search Bar Mockup */}
-                    <div className="flex items-center gap-4 flex-1">
-                        <button 
-                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-                            className="md:hidden p-2 text-slate-500 hover:text-slate-900 rounded-lg"
+                        <a
+                            href="/#facilities"
+                            className={`relative text-sm font-extrabold transition-all duration-200 py-1 ${
+                                isFacilitiesActive
+                                    ? 'text-[#0077CC]'
+                                    : 'text-slate-600 hover:text-[#0b1c30]'
+                            }`}
                         >
-                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
-                        </button>
-                        
-                        <div className="relative max-w-xs w-full hidden sm:block">
-                            <input
-                                type="text"
-                                placeholder="Type to search..."
-                                className="w-full pl-9 pr-4 py-1.5 bg-transparent border-0 text-slate-800 text-sm placeholder-slate-405 focus:ring-0 focus:outline-none"
-                            />
-                            <svg className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </div>
-                    </div>
+                            Facilities
+                            {isFacilitiesActive && (
+                                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#0077CC] rounded-full transition-all"></span>
+                            )}
+                        </a>
 
-                    {/* Header Right: Controls & Menus */}
+                        <a
+                            href="/#about"
+                            className={`relative text-sm font-extrabold transition-all duration-200 py-1 ${
+                                isAboutActive
+                                    ? 'text-[#0077CC]'
+                                    : 'text-slate-600 hover:text-[#0b1c30]'
+                            }`}
+                        >
+                            About
+                            {isAboutActive && (
+                                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#0077CC] rounded-full transition-all"></span>
+                            )}
+                        </a>
+                    </nav>
+
+                    {/* Right User Actions (Identical across all pages) */}
                     <div className="flex items-center gap-4">
-                        {/* Light/Dark Toggle Placeholder */}
-                        <div className="p-2 text-slate-400 hover:text-slate-650 cursor-pointer hidden sm:block" title="Theme Switcher">
-                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
-                            </svg>
-                        </div>
+                        {user ? (
+                            <div className="flex items-center gap-3 sm:gap-5">
+                                {/* 1. My Reservations Link */}
+                                <Link
+                                    href="/my-reservations"
+                                    className={`text-xs font-extrabold px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 ${
+                                        currentPath === '/my-reservations'
+                                            ? 'bg-indigo-50 text-[#0077CC] ring-1 ring-indigo-200'
+                                            : 'text-[#0b1c30] hover:text-[#0077CC] hover:bg-slate-100/80'
+                                    }`}
+                                >
+                                    <svg className="w-4 h-4 text-[#0077CC]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <span className="hidden sm:inline">My Reservations</span>
+                                </Link>
 
-                        {/* Notification Bell Dropdown */}
-                        <div className="relative" ref={notificationRef}>
-                            <button
-                                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                                className="p-2 text-slate-400 hover:text-emerald-600 rounded-full hover:bg-slate-100 relative focus:outline-none"
-                            >
-                                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                </svg>
-                                {unreadCount > 0 && (
-                                    <span className="absolute top-1.5 right-1.5 h-4.5 w-4.5 rounded-full bg-rose-500 text-white font-extrabold text-[8px] flex items-center justify-center border border-white">
-                                        {unreadCount}
-                                    </span>
-                                )}
-                            </button>
+                                {/* 2. Notifications Bell Icon */}
+                                <Link
+                                    href="/notifications"
+                                    className={`relative p-2 rounded-xl transition-all ${
+                                        currentPath === '/notifications'
+                                            ? 'bg-indigo-50 text-[#0077CC]'
+                                            : 'text-slate-600 hover:text-[#0b1c30] hover:bg-slate-100/80'
+                                    }`}
+                                    title="Notifications"
+                                >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                    </svg>
+                                    <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[#add911] ring-2 ring-white"></span>
+                                </Link>
 
-                            {isNotificationOpen && (
-                                <div className="absolute right-0 mt-3.5 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-3">
-                                    <div className="px-4 pb-2 border-b border-slate-100 flex justify-between items-center">
-                                        <span className="text-xs font-bold text-slate-900">Notifications</span>
-                                        <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">{unreadCount} Unread</span>
-                                    </div>
-                                    <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto">
-                                        {recentNotifications.length > 0 ? (
-                                            recentNotifications.map(notif => (
-                                                <Link 
-                                                    key={notif.id} 
-                                                    href="/user/notifications"
-                                                    onClick={() => setIsNotificationOpen(false)}
-                                                    className="block px-4 py-3 hover:bg-slate-55 text-left transition-colors"
-                                                >
-                                                    <span className={`block text-xs ${!notif.is_read ? 'font-bold text-slate-900' : 'text-slate-700'}`}>{notif.message}</span>
-                                                    <span className="block text-[9px] text-slate-450 mt-1 font-semibold">{notif.created_at}</span>
-                                                </Link>
-                                            ))
-                                        ) : (
-                                            <div className="px-4 py-6 text-center text-xs text-slate-450">
-                                                You have no alerts at this time.
+                                {/* 3. Avatar + Name/Email + Dropdown Icon */}
+                                <div className="relative" ref={profileRef}>
+                                    <button
+                                        onClick={() => setIsProfileOpen(!isProfileOpen)}
+                                        className="flex items-center gap-2.5 p-1.5 pr-3 rounded-2xl hover:bg-slate-100/80 transition-all border border-transparent hover:border-slate-200/80"
+                                    >
+                                        <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#0b1c30] to-[#0077CC] text-white flex items-center justify-center font-black text-xs shadow-sm">
+                                            {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                                        </div>
+
+                                        <div className="hidden md:flex flex-col text-left">
+                                            <span className="text-xs font-black text-[#0b1c30] leading-tight">
+                                                {user.name}
+                                            </span>
+                                            <span className="text-[10px] font-semibold text-slate-450 leading-tight">
+                                                {user.email}
+                                            </span>
+                                        </div>
+
+                                        <svg
+                                            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`}
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </button>
+
+                                    {/* Dropdown Menu */}
+                                    {isProfileOpen && (
+                                        <div className="absolute right-0 mt-2.5 w-56 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 animate-fadeIn">
+                                            <div className="px-4 py-2.5 border-b border-slate-100 md:hidden">
+                                                <p className="text-xs font-black text-[#0b1c30]">{user.name}</p>
+                                                <p className="text-[10px] text-slate-450">{user.email}</p>
                                             </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
 
-                        {/* User Profile Dropdown */}
-                        <div className="relative" ref={profileRef}>
-                            <button
-                                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                                className="flex items-center gap-2.5 focus:outline-none text-left"
-                            >
-                                <div className="hidden sm:block">
-                                    <span className="block text-sm font-semibold text-slate-850 leading-none">{user.name}</span>
-                                    <span className="block text-[10px] text-slate-450 uppercase font-extrabold tracking-wider mt-1">{user.role}</span>
-                                </div>
-                                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-605 flex items-center justify-center font-bold text-sm text-white border border-emerald-200 shadow-sm shrink-0">
-                                    U
-                                </div>
-                                <svg className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </button>
+                                            <Link
+                                                href="/my-reservations"
+                                                onClick={() => setIsProfileOpen(false)}
+                                                className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-slate-700 hover:text-[#0b1c30] hover:bg-slate-50 transition-colors"
+                                            >
+                                                <svg className="w-4 h-4 text-[#0077CC]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                                <span>My Reservations</span>
+                                            </Link>
 
-                            {isProfileOpen && (
-                                <div className="absolute right-0 mt-3.5 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1.5 text-sm">
-                                    <div className="px-4 py-2 border-b border-slate-100 sm:hidden">
-                                        <span className="block text-sm font-semibold text-slate-800 leading-none">{user.name}</span>
-                                        <span className="block text-[10px] text-slate-450 uppercase font-extrabold tracking-wider mt-1">{user.role}</span>
-                                    </div>
-                                    <div className="p-1">
-                                        <Link
-                                            href="/user/dashboard"
-                                            onClick={() => setIsProfileOpen(false)}
-                                            className="flex items-center gap-2 px-3 py-2 text-slate-650 hover:text-slate-900 rounded-lg hover:bg-slate-50 transition-colors"
-                                        >
-                                            View Schedule
-                                        </Link>
-                                        <Link
-                                            href="/user/profile"
-                                            onClick={() => setIsProfileOpen(false)}
-                                            className="flex items-center gap-2 px-3 py-2 text-slate-655 hover:text-slate-900 rounded-lg hover:bg-slate-50 transition-colors"
-                                        >
-                                            My Profile
-                                        </Link>
-                                    </div>
-                                    <div className="border-t border-slate-100 p-1">
-                                        <button
-                                            onClick={handleLogout}
-                                            className="w-full flex items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50 rounded-lg text-left transition-colors font-semibold"
-                                        >
-                                            Sign Out
-                                        </button>
-                                    </div>
+                                            <Link
+                                                href="/profile"
+                                                onClick={() => setIsProfileOpen(false)}
+                                                className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-slate-700 hover:text-[#0b1c30] hover:bg-slate-50 transition-colors"
+                                            >
+                                                <svg className="w-4 h-4 text-[#0077CC]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                </svg>
+                                                <span>My Profile</span>
+                                            </Link>
+
+                                            <div className="border-t border-slate-100 my-1"></div>
+
+                                            <button
+                                                onClick={handleLogout}
+                                                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-extrabold text-rose-600 hover:bg-rose-50 transition-colors text-left"
+                                            >
+                                                <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                                </svg>
+                                                <span>Logout</span>
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-3">
+                                <Link
+                                    href="/login"
+                                    className="text-xs font-bold text-slate-700 hover:text-[#0b1c30] px-3 py-2 transition-colors"
+                                >
+                                    Sign In
+                                </Link>
+                                <Link
+                                    href="/register"
+                                    className="px-5 py-2.5 text-xs font-extrabold text-white bg-[#0b1c30] hover:bg-[#132c4a] rounded-xl transition-all shadow-md"
+                                >
+                                    Register
+                                </Link>
+                            </div>
+                        )}
                     </div>
-                </header>
-
-                {/* Content Container */}
-                <div className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto">
-                    <h2 className="text-xl font-title font-black text-slate-900 mb-6 tracking-tight hidden md:block">{title}</h2>
-                    {children}
                 </div>
-            </div>
+            </header>
+
+            {/* Main Content Area */}
+            <main className="flex-1 pt-28 pb-16 px-6 max-w-7xl w-full mx-auto relative">
+                {children}
+            </main>
+
+            {/* Footer (Landing Page Style) */}
+            <footer className="bg-white text-slate-700 py-10 border-t border-slate-200/90 mt-auto z-10">
+                <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="flex items-center gap-3">
+                        <img
+                            src="/images/playza_horizontal.png"
+                            alt="PlayZa Logo"
+                            className="h-9 object-contain drop-shadow-sm"
+                        />
+                        <span className="text-xs text-slate-500 font-medium">
+                            © {new Date().getFullYear()} PlayZa Getafe Sports System. All rights reserved.
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-6 text-xs text-slate-600 font-bold">
+                        <Link href="/terms-of-service" className="hover:text-[#0077CC] transition-colors">Terms of Service</Link>
+                        <Link href="/privacy-policy" className="hover:text-[#0077CC] transition-colors">Privacy Policy</Link>
+                    </div>
+                </div>
+            </footer>
         </div>
     );
 }

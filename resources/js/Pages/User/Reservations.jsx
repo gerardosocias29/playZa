@@ -53,7 +53,10 @@ export default function Reservations({ reservations = [] }) {
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <h3 className="font-bold text-slate-900 text-base">{res.facility?.name || 'Facility'}</h3>
-                                        <p className="text-xs text-slate-500 font-mono mt-0.5">{res.reservation_date}</p>
+                                        <p className="text-xs text-slate-500 font-mono mt-0.5">
+                                            {res.reservation_date}
+                                            {res.end_date && res.end_date !== res.reservation_date && ` → ${res.end_date}`}
+                                        </p>
                                     </div>
                                     <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
                                         res.status === 'approved' 

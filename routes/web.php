@@ -7,23 +7,15 @@ use App\Http\Controllers\Admin\ReservationController as AdminReservationControll
 use App\Http\Controllers\Admin\ScheduleController as AdminScheduleController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\NotificationController as UserNotificationController;
 use App\Http\Controllers\User\ReservationController as UserReservationController;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 // Welcome / Landing page
-Route::get('/', function () {
-    if (Auth::check()) {
-        $user = Auth::user();
-        if ($user->role === 'admin') {
-            return redirect()->route('admin.dashboard');
-        }
-    }
-    return Inertia::render('Welcome');
-});
+Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
 
 // Legal Pages Routes
 Route::get('/terms-of-service', function () {

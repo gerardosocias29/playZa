@@ -170,7 +170,7 @@ export default function TimelineScheduler({
     const availableOpenHours = hours.filter(h => getBlockStatus(h) === 'available');
 
     return (
-        <div className="w-full space-y-8 pb-36">
+        <div className="w-full space-y-8 pb-4">
             
             {/* Hold & Drag Date Target Strip */}
             <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-5 rounded-3xl text-white shadow-xl">
@@ -662,48 +662,7 @@ export default function TimelineScheduler({
                 </button>
             </div>
 
-            {/* VISIBLE OPEN TIME SLOT DOCK AT THE BOTTOM */}
-            <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0b1c30]/95 backdrop-blur-md border-t border-slate-700/60 p-3 sm:p-4 text-white shadow-2xl">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 shrink-0">
-                        <div className="h-3 w-3 rounded-full bg-[#add911] animate-pulse"></div>
-                        <div>
-                            <span className="text-xs font-black uppercase tracking-wider text-[#add911]">
-                                Visible Open Time Slots ({selectedDate})
-                            </span>
-                            <p className="text-[11px] text-slate-300">
-                                Click slot to select range or click & hold to drag to date target above!
-                            </p>
-                        </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 overflow-x-auto max-w-full pb-1">
-                        {availableOpenHours.length > 0 ? (
-                            availableOpenHours.map((h) => {
-                                const isSelected = selectedRange && h >= selectedRange.start && h <= selectedRange.end;
-                                return (
-                                    <button
-                                        key={h}
-                                        type="button"
-                                        draggable={true}
-                                        onDragStart={(e) => handleDragStart(e, h)}
-                                        onClick={() => handleBlockClick(h)}
-                                        className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition-all border cursor-grab active:cursor-grabbing ${
-                                            isSelected
-                                                ? 'bg-[#add911] text-[#0b1c30] border-[#add911] shadow-md scale-105 font-black'
-                                                : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
-                                        }`}
-                                    >
-                                        {format24Time(h)}
-                                    </button>
-                                );
-                            })
-                        ) : (
-                            <span className="text-xs text-rose-400 font-bold">No open slots available for this date.</span>
-                        )}
-                    </div>
-                </div>
-            </div>
 
         </div>
     );

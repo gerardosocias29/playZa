@@ -96,7 +96,12 @@ export default function Reservations({ reservations = [] }) {
                                             {res.event_type || res.eventType || res.custom_event_name || '--'}
                                         </td>
                                         <td className="py-4 px-4 text-xs font-mono">
-                                            <div>{res.reservation_date || res.date}</div>
+                                            <div>
+                                                {res.reservation_date || res.date}
+                                                {res.end_date && res.end_date !== res.reservation_date && (
+                                                    <span className="text-[#0077CC]"> → {res.end_date}</span>
+                                                )}
+                                            </div>
                                             <div className="text-slate-500">{res.start_time || res.timeSlot} - {res.end_time}</div>
                                         </td>
                                         <td className="py-4 px-4">
