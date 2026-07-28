@@ -17,12 +17,20 @@ class Facility extends Model
         'images',
         'active',
         'requires_event_type',
+        'event_options',
+        'allow_custom_event_name',
+        'max_hours',
+        'allow_custom_events',
     ];
 
     protected $casts = [
         'images' => 'array',
         'active' => 'boolean',
         'requires_event_type' => 'boolean',
+        'event_options' => 'array',
+        'allow_custom_event_name' => 'boolean',
+        'max_hours' => 'integer',
+        'allow_custom_events' => 'boolean',
     ];
 
     public function reservations()

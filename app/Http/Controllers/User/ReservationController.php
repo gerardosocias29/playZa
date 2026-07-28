@@ -97,6 +97,19 @@ class ReservationController extends Controller
             return back()->withErrors(['event_type' => 'Event type or custom event name is required for this facility.']);
         }
 
+        if ($facility->max_hours && $facility->max_hours > 0) {
+            $startDateObj = Carbon::parse($validated['reservation_date']);
+            $endDateObj = Carbon::parse($validated['end_date'] ?: $validated['reservation_date']);
+            $daysCount = $startDateObj->diffInDays($endDateObj) + 1;
+            $dailyHours = ceil($validated['duration_hours'] / max(1, $daysCount));
+
+            if ($dailyHours > $facility->max_hours) {
+                return back()->withErrors([
+                    'end_time' => "This facility limits casual play reservations to a maximum of {$facility->max_hours} hour(s) per day.",
+                ]);
+            }
+        }
+
         $startDate = $validated['reservation_date'];
         $endDate = $validated['end_date'] ?: $startDate;
 

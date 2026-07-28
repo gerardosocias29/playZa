@@ -22,12 +22,20 @@ const MONTHS = [
 ];
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-const EVENT_TYPES = ['Graduation', 'Meeting', 'Wedding', 'Birthday', 'Others'];
+const EVENT_TYPES = [
+    'Graduation',
+    'Meeting',
+    'Meeting de Avance',
+    'Wedding',
+    'Birthday',
+    'Intramurals',
+    'Sports Tournament',
+    'Others',
+];
 
 const MODES = [
     { id: 'single', label: 'Single day', desc: 'One date' },
     { id: 'range', label: 'Multiple days', desc: 'Same time, date range' },
-    { id: 'overnight', label: 'Overnight', desc: 'Crosses midnight' },
 ];
 
 export default function AvailabilityModal({
@@ -54,6 +62,10 @@ export default function AvailabilityModal({
     const [eventType, setEventType] = useState(EVENT_TYPES[1]);
     const [customEventName, setCustomEventName] = useState('');
     const [submitting, setSubmitting] = useState(false);
+
+    const timelineRef = React.useRef(null);
+    const [dragMode, setDragMode] = useState(null); // null | 'move' | 'left' | 'right'
+    const [dragOffset, setDragOffset] = useState(0);
 
     const facilityList = facilities.length > 0 ? facilities : facility ? [facility] : [];
     const activeFacility =
@@ -93,33 +105,41 @@ export default function AvailabilityModal({
         });
     }, [activeFacility?.id, selectedDates, startHour, endAbsHour, reservations, schedules, hoursPerDay]);
 
+    const maxHours = activeFacility?.max_hours || null;
+    const exceedsMaxHours = Boolean(maxHours && hoursPerDay > maxHours);
+
     const startsInPast = startDate === today && startHour <= currentHour;
     const canSubmit = Boolean(
-        user && activeFacility && hoursPerDay > 0 && !conflict && !startsInPast && !submitting
+        user && activeFacility && hoursPerDay > 0 && !exceedsMaxHours && !conflict && !startsInPast && !submitting
     );
 
     /* ---------- effects ---------- */
 
+    const facilityMaxHours = activeFacility?.max_hours || null;
+
     useEffect(() => {
         if (!isOpen) return;
         const initial = currentHour >= 22 ? addDays(today, 1) : today;
+        const defaultDur = facilityMaxHours ? Math.min(2, facilityMaxHours) : 2;
+        const start = initial === today ? Math.min(currentHour + 1, 22) : 8;
         setMode('single');
         setFacilityId(facility?.id ?? facilityList[0]?.id ?? null);
         setSelection(newSelection(initial));
-        setStartHour(initial === today ? Math.min(currentHour + 1, 22) : 8);
-        setEndAbsHour(initial === today ? Math.min(currentHour + 3, 24) : 17);
+        setStartHour(start);
+        setEndAbsHour(initial === today ? Math.min(start + defaultDur, 24) : start + defaultDur);
         setViewMonth(new Date());
         setCustomEventName('');
-    }, [isOpen, facility?.id]);
+    }, [isOpen, facility?.id, activeFacility?.max_hours]);
 
     // Coming back to today from a future date can leave the start on an hour
     // that has already passed — nudge it forward so the select stays in sync.
     useEffect(() => {
         if (startDate !== today || startHour > currentHour) return;
         const next = Math.min(currentHour + 1, 23);
+        const defaultDur = facilityMaxHours ? Math.min(2, facilityMaxHours) : 2;
         setStartHour(next);
-        setEndAbsHour((prev) => (mode === 'overnight' ? prev : prev <= next ? Math.min(next + 2, 24) : prev));
-    }, [startDate, startHour, currentHour, today, mode]);
+        setEndAbsHour((prev) => (mode === 'overnight' ? prev : Math.min(next + defaultDur, 24)));
+    }, [startDate, startHour, currentHour, today, mode, activeFacility?.max_hours]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -136,13 +156,9 @@ export default function AvailabilityModal({
     const switchMode = (next) => {
         setMode(next);
         setSelection((sel) => newSelection(sel.startDate));
-        if (next === 'overnight') {
-            setStartHour(20);
-            setEndAbsHour(27); // 3 AM next day
-        } else {
-            setStartHour(8);
-            setEndAbsHour(17);
-        }
+        const defaultDur = facilityMaxHours ? Math.min(2, facilityMaxHours) : 2;
+        setStartHour(8);
+        setEndAbsHour(8 + defaultDur);
     };
 
     /*
@@ -218,20 +234,66 @@ export default function AvailabilityModal({
         (h) => !(startDate === today && h <= currentHour)
     );
 
-    const endOptions =
-        mode === 'overnight'
-            ? Array.from({ length: 12 }, (_, i) => 25 + i) // 1 AM .. 12 PM next day
-            : Array.from({ length: 24 - startHour }, (_, i) => startHour + 1 + i);
+    const maxAllowedHours = facilityMaxHours || 24;
+    const maxEndLength = Math.min(24 - startHour, maxAllowedHours);
+
+    const endOptions = Array.from({ length: maxEndLength }, (_, i) => startHour + 1 + i);
+
+    const timelineFrom = 0;
+    const timelineTo = 24;
+    const timelineSpan = 24;
+    const ticks = [0, 6, 12, 18, 24];
+
+    const minStartHour = startDate === today ? Math.min(currentHour + 1, 23) : timelineFrom;
+    const maxEndHour = timelineTo;
+
+    useEffect(() => {
+        if (!dragMode) return;
+
+        const handlePointerMove = (e) => {
+            if (!timelineRef.current) return;
+            const rect = timelineRef.current.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const ratio = Math.max(0, Math.min(1, x / rect.width));
+            const hourPos = timelineFrom + ratio * timelineSpan;
+
+            const currentDur = Math.max(1, endAbsHour - startHour);
+            const dur = facilityMaxHours ? Math.min(currentDur, facilityMaxHours) : currentDur;
+
+            const maxAllowedEnd = facilityMaxHours ? Math.min(maxEndHour, startHour + facilityMaxHours) : maxEndHour;
+            const minAllowedStart = facilityMaxHours ? Math.max(minStartHour, endAbsHour - facilityMaxHours) : minStartHour;
+
+            if (dragMode === 'move') {
+                let newStart = Math.round(hourPos - dragOffset);
+                newStart = Math.max(minStartHour, Math.min(maxEndHour - dur, newStart));
+                setStartHour(newStart);
+                setEndAbsHour(newStart + dur);
+            } else if (dragMode === 'left') {
+                let newStart = Math.round(hourPos);
+                newStart = Math.max(minAllowedStart, Math.min(endAbsHour - 1, newStart));
+                setStartHour(newStart);
+            } else if (dragMode === 'right') {
+                let newEnd = Math.round(hourPos);
+                newEnd = Math.max(startHour + 1, Math.min(maxAllowedEnd, newEnd));
+                setEndAbsHour(newEnd);
+            }
+        };
+
+        const handlePointerUp = () => setDragMode(null);
+
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp);
+        return () => {
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('pointerup', handlePointerUp);
+        };
+    }, [dragMode, dragOffset, startHour, endAbsHour, minStartHour, maxEndHour, timelineFrom, timelineSpan, facilityMaxHours]);
 
     if (!isOpen || !activeFacility) return null;
 
     const serverError = errors.start_time || errors.event_type || errors.reservation_date || errors.end_date;
-    const timelineFrom = mode === 'overnight' ? 12 : 0;
-    const timelineTo = mode === 'overnight' ? 36 : 24;
-    const timelineSpan = timelineTo - timelineFrom;
-    const ticks = mode === 'overnight' ? [12, 18, 24, 30, 36] : [0, 6, 12, 18, 24];
 
-    const timelineWindows = busyOnDate(startDate)
+    let timelineWindows = busyOnDate(startDate)
         .map((w) => ({ ...w, s: w.s / 60, e: w.e / 60 }))
         .concat(
             busyOnDate(addDays(startDate, 1)).map((w) => ({
@@ -239,12 +301,49 @@ export default function AvailabilityModal({
                 s: w.s / 60 + 24,
                 e: w.e / 60 + 24,
             }))
-        )
-        .filter((w) => w.e > timelineFrom && w.s < timelineTo);
+        );
+
+    if (startDate === today) {
+        timelineWindows = [
+            { s: 0, e: currentHour + 1, type: 'past' },
+            ...timelineWindows,
+        ];
+    }
+
+    timelineWindows = timelineWindows.filter((w) => w.e > timelineFrom && w.s < timelineTo);
+
+    const handleTimelinePointerDown = (e, targetMode) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!timelineRef.current) return;
+
+        const rect = timelineRef.current.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const clickRatio = Math.max(0, Math.min(1, clickX / rect.width));
+        const clickedHour = timelineFrom + clickRatio * timelineSpan;
+
+        const actualMode = (hoursPerDay <= 1 && (targetMode === 'left' || targetMode === 'right')) ? 'move' : targetMode;
+
+        if (actualMode === 'jump') {
+            const currentDur = Math.max(1, endAbsHour - startHour);
+            const dur = facilityMaxHours ? Math.min(currentDur, facilityMaxHours) : currentDur;
+            let newStart = Math.round(clickedHour - dur / 2);
+            newStart = Math.max(minStartHour, Math.min(maxEndHour - dur, newStart));
+            setStartHour(newStart);
+            setEndAbsHour(newStart + dur);
+            setDragMode('move');
+            setDragOffset(dur / 2);
+        } else {
+            setDragMode(actualMode);
+            if (actualMode === 'move') {
+                setDragOffset(clickedHour - startHour);
+            }
+        }
+    };
 
     return (
         <div
-            className="fixed inset-0 z-[9999] bg-slate-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6"
+            className="fixed inset-0 z-[9999] bg-slate-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
             onClick={onClose}
             role="dialog"
             aria-modal="true"
@@ -252,39 +351,39 @@ export default function AvailabilityModal({
         >
             <div
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-4xl max-h-[94vh] flex flex-col bg-white rounded-t-3xl sm:rounded-2xl border border-slate-200 shadow-2xl overflow-hidden"
+                className="w-full max-w-4xl max-h-[90vh] flex flex-col bg-white rounded-t-3xl sm:rounded-2xl border border-slate-200 shadow-2xl overflow-hidden"
             >
                 {/* Header */}
-                <header className="shrink-0 border-b border-slate-200 px-6 py-5 flex items-start justify-between gap-4 flex-wrap">
-                    <div className="min-w-0">
-                        <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#0077CC]">
-                            Check Availability
-                        </p>
-                        <h2 className="mt-1 text-xl font-title font-black text-[#0b1c30] truncate">
-                            {activeFacility.name}
-                        </h2>
+                <header className="shrink-0 border-b border-slate-200 px-5 py-3.5 flex items-center justify-between gap-3 flex-wrap bg-white">
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <div className="min-w-0">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0077CC]">
+                                Check Availability
+                            </p>
+                            <h2 className="text-lg font-title font-black text-[#0b1c30] truncate leading-tight">
+                                {activeFacility.name}
+                            </h2>
+                            <p className="text-[11px] font-bold text-slate-500 mt-0.5">
+                                Max: {facilityMaxHours ? `${facilityMaxHours} hrs/session` : 'Unlimited'}
+                            </p>
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2.5 flex-wrap">
                         {facilityList.length > 1 && (
-                            <div className="flex gap-1.5 flex-wrap">
-                                {facilityList.map((f) => {
-                                    const isActive = String(f.id) === String(activeFacility.id);
-                                    return (
-                                        <button
-                                            key={f.id}
-                                            type="button"
-                                            onClick={() => setFacilityId(f.id)}
-                                            className={`px-3 h-8 rounded-full border text-xs font-bold transition-colors ${
-                                                isActive
-                                                    ? 'border-[#0b1c30] bg-[#0b1c30] text-white'
-                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                                            }`}
-                                        >
-                                            {f.name}
-                                        </button>
-                                    );
-                                })}
+                            <div className="flex items-center gap-1.5">
+                                <label className="text-xs font-bold text-slate-500 hidden sm:inline">Facility:</label>
+                                <select
+                                    value={activeFacility.id}
+                                    onChange={(e) => setFacilityId(e.target.value)}
+                                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-[#0b1c30] shadow-xs focus:ring-2 focus:ring-[#0077CC]"
+                                >
+                                    {facilityList.map((f) => (
+                                        <option key={f.id} value={f.id}>
+                                            {f.name} ({f.type})
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                         )}
                         <button
@@ -300,9 +399,10 @@ export default function AvailabilityModal({
                     </div>
                 </header>
 
-                {/* Mode switcher */}
-                <div className="shrink-0 border-b border-slate-200 px-6 py-3.5">
-                    <div className="grid grid-cols-3 gap-1.5 bg-slate-100 p-1.5 rounded-2xl max-w-lg">
+                {/* Compact Mode Switcher */}
+                <div className="shrink-0 border-b border-slate-200 px-5 py-2 flex items-center gap-2 bg-slate-50/60">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider mr-1">Mode:</span>
+                    <div className="inline-flex p-1 bg-slate-200/70 rounded-xl gap-1">
                         {MODES.map((m) => {
                             const isActive = mode === m.id;
                             return (
@@ -310,16 +410,11 @@ export default function AvailabilityModal({
                                     key={m.id}
                                     type="button"
                                     onClick={() => switchMode(m.id)}
-                                    className={`py-2 px-1 rounded-xl flex flex-col items-center gap-0.5 transition-colors ${
-                                        isActive ? 'bg-white shadow-sm' : 'hover:bg-white/60'
+                                    className={`px-3 py-1 rounded-lg text-xs font-extrabold transition-all ${
+                                        isActive ? 'bg-white text-[#0b1c30] shadow-xs' : 'text-slate-600 hover:text-slate-900'
                                     }`}
                                 >
-                                    <span className={`text-xs font-black ${isActive ? 'text-[#0b1c30]' : 'text-slate-500'}`}>
-                                        {m.label}
-                                    </span>
-                                    <span className={`text-[10px] font-medium ${isActive ? 'text-slate-500' : 'text-slate-400'}`}>
-                                        {m.desc}
-                                    </span>
+                                    {m.label}
                                 </button>
                             );
                         })}
@@ -447,10 +542,6 @@ export default function AvailabilityModal({
                                     {prettyDate(startDate)}
                                     {endDate !== startDate ? ` to ${prettyDate(endDate)}` : ''}
                                 </>
-                            ) : mode === 'overnight' ? (
-                                <>
-                                    Starts <b className="text-[#0b1c30]">{prettyDate(startDate, true)}</b> and runs past midnight.
-                                </>
                             ) : (
                                 <>
                                     Booking for <b className="text-[#0b1c30]">{prettyDate(startDate, true)}</b>
@@ -468,8 +559,13 @@ export default function AvailabilityModal({
                                 onChange={(e) => {
                                     const next = Number(e.target.value);
                                     setStartHour(next);
-                                    if (mode !== 'overnight' && endAbsHour <= next) {
-                                        setEndAbsHour(Math.min(next + 2, 24));
+                                    const maxAllowed = facilityMaxHours ? next + facilityMaxHours : 24;
+                                    if (mode !== 'overnight') {
+                                        if (endAbsHour <= next) {
+                                            setEndAbsHour(Math.min(next + (facilityMaxHours ? Math.min(2, facilityMaxHours) : 2), maxAllowed));
+                                        } else if (endAbsHour > maxAllowed) {
+                                            setEndAbsHour(maxAllowed);
+                                        }
                                     }
                                 }}
                                 className="flex-1 min-w-0 rounded-xl border-slate-200 bg-white text-sm font-black text-[#0b1c30] focus:border-[#0077CC] focus:ring-[#0077CC]"
@@ -500,14 +596,13 @@ export default function AvailabilityModal({
                             </select>
                         </div>
 
-                        <span className="inline-block mt-3 px-3 py-1.5 rounded-full bg-[#0077CC]/10 text-[#0077CC] text-xs font-black">
-                            {hoursPerDay}h per day
-                            {mode === 'range' && selectedDates.length > 1 ? ` · ${totalHours}h total` : ''}
-                        </span>
-
                         {/* Timeline */}
                         <div className="mt-7">
-                            <div className="relative h-[52px] rounded-xl bg-white border border-slate-200 mt-7 overflow-visible">
+                            <div
+                                ref={timelineRef}
+                                onPointerDown={(e) => handleTimelinePointerDown(e, 'jump')}
+                                className="relative h-[56px] rounded-xl bg-slate-100 border border-slate-200 mt-7 overflow-visible cursor-pointer select-none touch-none"
+                            >
                                 {timelineWindows.map((w, i) => {
                                     const left = ((Math.max(w.s, timelineFrom) - timelineFrom) / timelineSpan) * 100;
                                     const width =
@@ -515,12 +610,12 @@ export default function AvailabilityModal({
                                     return (
                                         <div
                                             key={i}
-                                            title={w.type === 'blocked' ? 'Closed for maintenance' : 'Already reserved'}
-                                            className="absolute top-0 bottom-0"
+                                            title={w.type === 'past' ? 'Past time - Not available' : w.type === 'blocked' ? 'Closed for maintenance' : 'Already reserved'}
+                                            className="absolute top-0 bottom-0 pointer-events-none"
                                             style={{
                                                 left: `${left}%`,
                                                 width: `${width}%`,
-                                                ...(w.type === 'blocked'
+                                                ...(w.type === 'blocked' || w.type === 'past'
                                                     ? {
                                                           background:
                                                               'repeating-linear-gradient(45deg,#FDECC8,#FDECC8 6px,#F6DFB4 6px,#F6DFB4 10px)',
@@ -533,14 +628,35 @@ export default function AvailabilityModal({
 
                                 {hoursPerDay > 0 && (
                                     <div
-                                        className={`absolute -top-1 -bottom-1 rounded-lg border-2 ${
-                                            conflict ? 'border-rose-500 bg-rose-500/15' : 'border-[#0077CC] bg-[#0077CC]/15'
+                                        onPointerDown={(e) => handleTimelinePointerDown(e, 'move')}
+                                        className={`absolute -top-1 -bottom-1 rounded-lg border-2 shadow-md touch-none cursor-grab active:cursor-grabbing transition-shadow ${
+                                            conflict ? 'border-rose-500 bg-rose-500/25' : 'border-[#0077CC] bg-[#0077CC]/25'
                                         }`}
                                         style={{
                                             left: `${((startHour - timelineFrom) / timelineSpan) * 100}%`,
                                             width: `${(hoursPerDay / timelineSpan) * 100}%`,
                                         }}
                                     >
+                                        {/* Left / Right Drag Handles only if hoursPerDay > 1 */}
+                                        {hoursPerDay > 1 && (
+                                            <>
+                                                <div
+                                                    onPointerDown={(e) => handleTimelinePointerDown(e, 'left')}
+                                                    className="absolute left-0 top-0 bottom-0 w-2.5 bg-[#0077CC] rounded-l-md cursor-ew-resize flex items-center justify-center group hover:w-3.5 transition-all z-10"
+                                                    title="Drag to adjust start time"
+                                                >
+                                                    <div className="w-0.5 h-3 bg-white/90 rounded-full" />
+                                                </div>
+                                                <div
+                                                    onPointerDown={(e) => handleTimelinePointerDown(e, 'right')}
+                                                    className="absolute right-0 top-0 bottom-0 w-2.5 bg-[#0077CC] rounded-r-md cursor-ew-resize flex items-center justify-center group hover:w-3.5 transition-all z-10"
+                                                    title="Drag to adjust end time"
+                                                >
+                                                    <div className="w-0.5 h-3 bg-white/90 rounded-full" />
+                                                </div>
+                                            </>
+                                        )}
+
                                         <span
                                             className={`absolute -top-6 left-0 text-[11px] font-black whitespace-nowrap ${
                                                 conflict ? 'text-rose-600' : 'text-[#0077CC]'
@@ -553,7 +669,7 @@ export default function AvailabilityModal({
                                                 conflict ? 'text-rose-600' : 'text-[#0077CC]'
                                             }`}
                                         >
-                                            {hourLabel(endAbsHour, endAbsHour > 24)}
+                                            {hourLabel(endAbsHour)}
                                         </span>
                                     </div>
                                 )}
@@ -562,7 +678,7 @@ export default function AvailabilityModal({
                             <div className="flex justify-between mt-7">
                                 {ticks.map((t) => (
                                     <span key={t} className="text-[9.5px] font-bold text-slate-400">
-                                        {hourLabel(t, t >= 24)}
+                                        {hourLabel(t)}
                                     </span>
                                 ))}
                             </div>
@@ -609,6 +725,15 @@ export default function AvailabilityModal({
                             </div>
                         )}
 
+                        {exceedsMaxHours && !conflict && !startsInPast && (
+                            <div className="mt-4 px-3 py-2.5 rounded-xl border border-amber-200 bg-amber-50 text-xs font-bold text-amber-800 flex items-center gap-2">
+                                <span>⚠</span>
+                                <span>
+                                    Casual play is limited to a maximum of <strong>{maxHours} hour(s)</strong> per session for this facility. Please select a shorter duration or contact admin for tournament/intramurals reservations.
+                                </span>
+                            </div>
+                        )}
+
                         {serverError && (
                             <div className="mt-4 px-3 py-2.5 rounded-xl border border-rose-200 bg-rose-50 text-xs font-bold text-rose-700">
                                 {serverError}
@@ -621,7 +746,11 @@ export default function AvailabilityModal({
                                     What is this booking for?
                                 </span>
                                 <div className="flex flex-wrap gap-2">
-                                    {EVENT_TYPES.map((type) => (
+                                    {(
+                                        (activeFacility.event_options && activeFacility.event_options.length > 0)
+                                            ? activeFacility.event_options
+                                            : EVENT_TYPES
+                                    ).map((type) => (
                                         <button
                                             key={type}
                                             type="button"
@@ -636,7 +765,7 @@ export default function AvailabilityModal({
                                         </button>
                                     ))}
                                 </div>
-                                {eventType === 'Others' && (
+                                {eventType === 'Others' && activeFacility.allow_custom_event_name !== false && (
                                     <input
                                         type="text"
                                         value={customEventName}

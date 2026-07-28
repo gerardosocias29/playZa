@@ -27,6 +27,10 @@ class FacilityController extends Controller
             'category' => 'required|string',
             'description' => 'nullable|string',
             'requires_event_type' => 'boolean',
+            'event_options' => 'nullable|array',
+            'allow_custom_event_name' => 'boolean',
+            'max_hours' => 'nullable|integer|min:1|max:24',
+            'allow_custom_events' => 'boolean',
             'images' => 'nullable|array',
             'active' => 'boolean',
         ]);
@@ -44,6 +48,10 @@ class FacilityController extends Controller
             'category' => 'required|string',
             'description' => 'nullable|string',
             'requires_event_type' => 'boolean',
+            'event_options' => 'nullable|array',
+            'allow_custom_event_name' => 'boolean',
+            'max_hours' => 'nullable|integer|min:1|max:24',
+            'allow_custom_events' => 'boolean',
             'images' => 'nullable|array',
             'active' => 'boolean',
         ]);
