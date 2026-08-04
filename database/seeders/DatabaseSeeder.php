@@ -63,7 +63,10 @@ class DatabaseSeeder extends Seeder
         $this->call(FacilitySeeder::class);
 
         $basketball = Facility::where('name', 'Basketball')->first();
+        $volleyball = Facility::where('name', 'Volleyball')->first();
+        $tennis = Facility::where('name', 'Tennis')->first();
         $todayStr = date('Y-m-d');
+        $tomorrowStr = date('Y-m-d', strtotime('+1 day'));
 
         if ($basketball) {
             $res1 = Reservation::create([
@@ -90,6 +93,36 @@ class DatabaseSeeder extends Seeder
                 'start_time' => '10:00',
                 'end_time' => '12:00',
                 'status' => 'blocked',
+            ]);
+        }
+
+        if ($volleyball) {
+            $res2 = Reservation::create([
+                'user_id' => $user->id,
+                'facility_id' => $volleyball->id,
+                'reservation_date' => $tomorrowStr,
+                'start_time' => '14:00',
+                'end_time' => '16:00',
+                'duration_hours' => 2,
+                'status' => 'pending',
+            ]);
+
+            Notification::create([
+                'user_id' => $user->id,
+                'reservation_id' => $res2->id,
+                'type' => 'info',
+                'message' => "Your reservation request for Volleyball on {$tomorrowStr} (14:00 - 16:00) has been submitted and is pending admin approval.",
+                'is_read' => false,
+            ]);
+        }
+
+        if ($tennis) {
+            Schedule::create([
+                'facility_id' => $tennis->id,
+                'date' => $todayStr,
+                'start_time' => '08:00',
+                'end_time' => '12:00',
+                'status' => 'maintenance',
             ]);
         }
     }

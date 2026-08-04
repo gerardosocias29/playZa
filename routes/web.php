@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
+use App\Http\Controllers\User\FacilityController as UserFacilityController;
 use App\Http\Controllers\User\NotificationController as UserNotificationController;
 use App\Http\Controllers\User\ReservationController as UserReservationController;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +32,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/users', [AdminUserController::class, 'index'])->name('users');
+    Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
     Route::patch('/users/{user}/approve', [AdminUserController::class, 'approve'])->name('users.approve');
     Route::patch('/users/{user}/reject', [AdminUserController::class, 'reject'])->name('users.reject');
     Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
@@ -46,12 +48,16 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::patch('/reservations/{reservation}/approve', [AdminReservationController::class, 'approve'])->name('reservations.approve');
     Route::patch('/reservations/{reservation}/reject', [AdminReservationController::class, 'reject'])->name('reservations.reject');
     Route::patch('/reservations/{reservation}/cancel', [AdminReservationController::class, 'cancel'])->name('reservations.cancel');
+    Route::patch('/reservations/{reservation}/no-show', [AdminReservationController::class, 'markNoShow'])->name('reservations.no-show');
 
     Route::get('/schedules', [AdminScheduleController::class, 'index'])->name('schedules');
     Route::post('/schedules', [AdminScheduleController::class, 'store'])->name('schedules.store');
+    Route::put('/schedules/{schedule}', [AdminScheduleController::class, 'update'])->name('schedules.update');
     Route::delete('/schedules/{schedule}', [AdminScheduleController::class, 'destroy'])->name('schedules.destroy');
 
     Route::get('/reports', [AdminReportController::class, 'index'])->name('reports');
+    Route::get('/reports/export-csv', [AdminReportController::class, 'exportCsv'])->name('reports.export');
+    Route::get('/reports/export-pdf', [AdminReportController::class, 'exportPdf'])->name('reports.export-pdf');
 });
 
 // Protected Regular User Routes (Clean Direct Paths: /dashboard, /my-reservations, /profile, /notifications)
@@ -59,6 +65,9 @@ Route::middleware(['auth', 'role:user'])->group(function () {
     Route::get('/dashboard', function () {
         return redirect('/');
     })->name('dashboard');
+
+    Route::get('/facilities', [UserFacilityController::class, 'index'])->name('facilities');
+    Route::get('/facilities/check-availability', [UserFacilityController::class, 'checkAvailability'])->name('facilities.check-availability');
 
     Route::get('/my-reservations', [UserReservationController::class, 'index'])->name('my-reservations');
     Route::post('/reservations', [UserReservationController::class, 'store'])->name('reservations.store');

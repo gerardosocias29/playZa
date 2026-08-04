@@ -99,7 +99,7 @@ class ReservationController extends Controller
 
         if ($facility->max_hours && $facility->max_hours > 0) {
             $startDateObj = Carbon::parse($validated['reservation_date']);
-            $endDateObj = Carbon::parse($validated['end_date'] ?: $validated['reservation_date']);
+            $endDateObj = Carbon::parse(($validated['end_date'] ?? null) ?: $validated['reservation_date']);
             $daysCount = $startDateObj->diffInDays($endDateObj) + 1;
             $dailyHours = ceil($validated['duration_hours'] / max(1, $daysCount));
 
@@ -111,7 +111,24 @@ class ReservationController extends Controller
         }
 
         $startDate = $validated['reservation_date'];
-        $endDate = $validated['end_date'] ?: $startDate;
+        $endDate = ($validated['end_date'] ?? null) ?: $startDate;
+
+        $blockedSchedule = Schedule::where('facility_id', $validated['facility_id'])
+            ->whereIn('status', ['blocked', 'maintenance'])
+            ->whereDate('date', '>=', $startDate)
+            ->whereDate('date', '<=', $endDate)
+            ->where(function ($q) use ($validated) {
+                $q->where('start_time', '<', $validated['end_time'])
+                  ->where('end_time', '>', $validated['start_time']);
+            })
+            ->first();
+
+        if ($blockedSchedule) {
+            $reason = ucfirst($blockedSchedule->status);
+            return back()->withErrors([
+                'start_time' => "Facility is unavailable during this time slot (Marked as {$reason} by Admin).",
+            ]);
+        }
 
         $newIntervals = $this->occupiedIntervals($startDate, $endDate, $validated['start_time'], $validated['end_time']);
 

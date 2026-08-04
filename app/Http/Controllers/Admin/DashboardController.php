@@ -33,10 +33,47 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        // Reservation status distribution breakdown
+        $statusBreakdown = [
+            'approved' => Reservation::where('status', 'approved')->count(),
+            'pending' => Reservation::where('status', 'pending')->count(),
+            'completed' => Reservation::where('status', 'completed')->count(),
+            'cancelled' => Reservation::where('status', 'cancelled')->count(),
+            'no_show' => Reservation::where('status', 'no_show')->count(),
+            'rejected' => Reservation::where('status', 'rejected')->count(),
+        ];
+
+        // Facility utilization distribution
+        $facilityUtilization = Facility::withCount('reservations')
+            ->get()
+            ->map(function ($fac) {
+                return [
+                    'id' => $fac->id,
+                    'name' => $fac->name,
+                    'count' => $fac->reservations_count,
+                ];
+            });
+
+        // Monthly reservation trends for current year
+        $monthlyData = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $monthName = date('M', mktime(0, 0, 0, $m, 1));
+            $count = Reservation::whereYear('reservation_date', date('Y'))
+                ->whereMonth('reservation_date', $m)
+                ->count();
+            $monthlyData[] = [
+                'month' => $monthName,
+                'count' => $count,
+            ];
+        }
+
         return Inertia::render('Admin/Dashboard', [
             'stats' => $stats,
             'recentReservations' => $recentReservations,
             'pendingUsers' => $pendingUsers,
+            'statusBreakdown' => $statusBreakdown,
+            'facilityUtilization' => $facilityUtilization,
+            'reservationTrends' => $monthlyData,
         ]);
     }
 }

@@ -36,9 +36,60 @@ class ScheduleController extends Controller
             'status' => 'required|string|in:available,blocked,maintenance',
         ]);
 
+        if (in_array($validated['status'], ['blocked', 'maintenance'])) {
+            $conflictingReservation = Reservation::where('facility_id', $validated['facility_id'])
+                ->whereIn('status', ['pending', 'approved'])
+                ->where(function ($q) use ($validated) {
+                    $q->whereDate('reservation_date', '<=', $validated['date'])
+                      ->whereDate(\Illuminate\Support\Facades\DB::raw('COALESCE(end_date, reservation_date)'), '>=', $validated['date']);
+                })
+                ->where(function ($q) use ($validated) {
+                    $q->where('start_time', '<', $validated['end_time'])
+                      ->where('end_time', '>', $validated['start_time']);
+                })
+                ->exists();
+
+            if ($conflictingReservation) {
+                return back()->withErrors(['start_time' => 'Schedule block conflicts with an existing active user reservation for this facility.']);
+            }
+        }
+
         Schedule::create($validated);
 
         return back()->with('message', 'Schedule slot saved successfully.');
+    }
+
+    public function update(Request $request, Schedule $schedule): RedirectResponse
+    {
+        $validated = $request->validate([
+            'facility_id' => 'required|exists:facilities,id',
+            'date' => 'required|date',
+            'start_time' => 'required|string',
+            'end_time' => 'required|string',
+            'status' => 'required|string|in:available,blocked,maintenance',
+        ]);
+
+        if (in_array($validated['status'], ['blocked', 'maintenance'])) {
+            $conflictingReservation = Reservation::where('facility_id', $validated['facility_id'])
+                ->whereIn('status', ['pending', 'approved'])
+                ->where(function ($q) use ($validated) {
+                    $q->whereDate('reservation_date', '<=', $validated['date'])
+                      ->whereDate(\Illuminate\Support\Facades\DB::raw('COALESCE(end_date, reservation_date)'), '>=', $validated['date']);
+                })
+                ->where(function ($q) use ($validated) {
+                    $q->where('start_time', '<', $validated['end_time'])
+                      ->where('end_time', '>', $validated['start_time']);
+                })
+                ->exists();
+
+            if ($conflictingReservation) {
+                return back()->withErrors(['start_time' => 'Schedule update conflicts with an existing active user reservation.']);
+            }
+        }
+
+        $schedule->update($validated);
+
+        return back()->with('message', 'Schedule slot updated successfully.');
     }
 
     public function destroy(Schedule $schedule): RedirectResponse

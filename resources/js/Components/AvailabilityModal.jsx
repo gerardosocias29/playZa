@@ -363,9 +363,7 @@ export default function AvailabilityModal({
                             <h2 className="text-lg font-title font-black text-[#0b1c30] truncate leading-tight">
                                 {activeFacility.name}
                             </h2>
-                            <p className="text-[11px] font-bold text-slate-500 mt-0.5">
-                                Max: {facilityMaxHours ? `${facilityMaxHours} hrs/session` : 'Unlimited'}
-                            </p>
+
                         </div>
                     </div>
 
@@ -708,6 +706,17 @@ export default function AvailabilityModal({
                             ))}
                         </div>
 
+                        {facilityMaxHours && (
+                            <div className="flex items-center gap-2 mt-3 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200">
+                                <svg className="w-3.5 h-3.5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v3m0 3h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                                </svg>
+                                <span className="text-[11px] font-extrabold text-amber-800">
+                                    Maximum booking duration: <strong>{facilityMaxHours} hr{facilityMaxHours !== 1 ? 's' : ''}/session</strong>
+                                </span>
+                            </div>
+                        )}
+
                         {conflict && (
                             <div className="flex items-start gap-2 mt-4 px-3 py-2.5 rounded-xl border border-[#F0B872] bg-amber-50 text-xs font-bold text-amber-700">
                                 <span>⚠</span>
@@ -726,10 +735,15 @@ export default function AvailabilityModal({
                         )}
 
                         {exceedsMaxHours && !conflict && !startsInPast && (
-                            <div className="mt-4 px-3 py-2.5 rounded-xl border border-amber-200 bg-amber-50 text-xs font-bold text-amber-800 flex items-center gap-2">
-                                <span>⚠</span>
+                            <div className="mt-4 px-3 py-3 rounded-xl border-2 border-rose-300 bg-rose-50 text-xs font-bold text-rose-800 flex items-start gap-2.5">
+                                <svg className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
                                 <span>
-                                    Casual play is limited to a maximum of <strong>{maxHours} hour(s)</strong> per session for this facility. Please select a shorter duration or contact admin for tournament/intramurals reservations.
+                                    <span className="block text-rose-900 font-extrabold mb-0.5">Session limit exceeded</span>
+                                    This facility allows a maximum of{' '}
+                                    <strong className="text-rose-900">{maxHours} hour{maxHours !== 1 ? 's' : ''} per session</strong>.
+                                    Please shorten your booking duration to proceed.
                                 </span>
                             </div>
                         )}

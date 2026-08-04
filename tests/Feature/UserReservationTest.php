@@ -110,4 +110,53 @@ class UserReservationTest extends TestCase
         $response->assertSessionHasNoErrors();
         $this->assertTrue($notification->fresh()->is_read);
     }
+
+    public function test_booking_rejected_when_facility_schedule_is_blocked_by_admin(): void
+    {
+        $date = date('Y-m-d', strtotime('+4 days'));
+
+        \App\Models\Schedule::create([
+            'facility_id' => $this->facility->id,
+            'date' => $date,
+            'start_time' => '08:00',
+            'end_time' => '12:00',
+            'status' => 'blocked',
+        ]);
+
+        $response = $this->actingAs($this->user)->post(route('reservations.store'), [
+            'facility_id' => $this->facility->id,
+            'reservation_date' => $date,
+            'start_time' => '09:00',
+            'end_time' => '11:00',
+            'duration_hours' => 2,
+        ]);
+
+        $response->assertSessionHasErrors(['start_time']);
+    }
+
+    public function test_admin_schedule_block_rejected_when_user_reservation_exists(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'status' => 'approved']);
+        $date = date('Y-m-d', strtotime('+5 days'));
+
+        Reservation::create([
+            'user_id' => $this->user->id,
+            'facility_id' => $this->facility->id,
+            'reservation_date' => $date,
+            'start_time' => '14:00',
+            'end_time' => '16:00',
+            'duration_hours' => 2,
+            'status' => 'approved',
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.schedules.store'), [
+            'facility_id' => $this->facility->id,
+            'date' => $date,
+            'start_time' => '13:00',
+            'end_time' => '15:00',
+            'status' => 'maintenance',
+        ]);
+
+        $response->assertSessionHasErrors(['start_time']);
+    }
 }

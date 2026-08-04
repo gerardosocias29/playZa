@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Notification;
 use App\Models\Reservation;
+use App\Notifications\ReservationStatusNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -58,12 +58,11 @@ class ReservationController extends Controller
     {
         $reservation->update(['status' => 'approved']);
 
-        Notification::create([
-            'user_id' => $reservation->user_id,
-            'reservation_id' => $reservation->id,
-            'type' => 'approval',
-            'message' => "Your reservation for {$reservation->facility->name} on {$reservation->date_label} ({$reservation->start_time} - {$reservation->end_time}) has been APPROVED.",
-        ]);
+        $message = "Your reservation for {$reservation->facility->name} on {$reservation->reservation_date} ({$reservation->start_time} - {$reservation->end_time}) has been APPROVED.";
+
+        if ($reservation->user) {
+            $reservation->user->notify(new ReservationStatusNotification($reservation, 'approval', $message));
+        }
 
         return back()->with('message', 'Reservation approved.');
     }
@@ -72,12 +71,11 @@ class ReservationController extends Controller
     {
         $reservation->update(['status' => 'rejected']);
 
-        Notification::create([
-            'user_id' => $reservation->user_id,
-            'reservation_id' => $reservation->id,
-            'type' => 'rejection',
-            'message' => "Your reservation for {$reservation->facility->name} on {$reservation->date_label} ({$reservation->start_time} - {$reservation->end_time}) has been REJECTED.",
-        ]);
+        $message = "Your reservation for {$reservation->facility->name} on {$reservation->reservation_date} ({$reservation->start_time} - {$reservation->end_time}) has been REJECTED.";
+
+        if ($reservation->user) {
+            $reservation->user->notify(new ReservationStatusNotification($reservation, 'rejection', $message));
+        }
 
         return back()->with('message', 'Reservation rejected.');
     }
@@ -86,13 +84,25 @@ class ReservationController extends Controller
     {
         $reservation->update(['status' => 'cancelled']);
 
-        Notification::create([
-            'user_id' => $reservation->user_id,
-            'reservation_id' => $reservation->id,
-            'type' => 'cancellation',
-            'message' => "Your reservation for {$reservation->facility->name} on {$reservation->date_label} ({$reservation->start_time} - {$reservation->end_time}) has been CANCELLED by Admin.",
-        ]);
+        $message = "Your reservation for {$reservation->facility->name} on {$reservation->reservation_date} ({$reservation->start_time} - {$reservation->end_time}) has been CANCELLED by Admin.";
+
+        if ($reservation->user) {
+            $reservation->user->notify(new ReservationStatusNotification($reservation, 'cancellation', $message));
+        }
 
         return back()->with('message', 'Reservation cancelled.');
+    }
+
+    public function markNoShow(Reservation $reservation): RedirectResponse
+    {
+        $reservation->update(['status' => 'no_show']);
+
+        $message = "Your reservation for {$reservation->facility->name} on {$reservation->reservation_date} ({$reservation->start_time} - {$reservation->end_time}) was flagged as NO SHOW by Admin.";
+
+        if ($reservation->user) {
+            $reservation->user->notify(new ReservationStatusNotification($reservation, 'no_show', $message));
+        }
+
+        return back()->with('message', 'Reservation flagged as No Show.');
     }
 }

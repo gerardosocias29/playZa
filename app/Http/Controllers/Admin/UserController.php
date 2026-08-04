@@ -31,6 +31,20 @@ class UserController extends Controller
         return back()->with('message', "User {$user->name} registration rejected.");
     }
 
+    public function update(Request $request, User $user): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'role' => 'required|in:admin,user',
+            'status' => 'required|in:pending,approved,rejected',
+        ]);
+
+        $user->update($validated);
+
+        return back()->with('message', "User {$user->name} updated successfully.");
+    }
+
     public function destroy(User $user): RedirectResponse
     {
         $user->delete();
