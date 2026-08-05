@@ -3,7 +3,8 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 
 export default function UserLayout({ children, title, activeSection = '' }) {
     const { auth, notificationsCount = 0 } = usePage().props;
-    const user = auth?.user || { id: 2, name: 'Regular User', email: 'user@playza.com', role: 'user' };
+    const user = auth?.user ?? null;
+
 
     const [isScrolled, setIsScrolled] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
