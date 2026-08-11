@@ -66,6 +66,8 @@ class AdminManagementTest extends TestCase
             'category' => 'Sports',
             'description' => 'Test Court Description',
             'capacity' => 20,
+            'booking_group' => 'indoor',
+            'booking_capacity' => 1,
             'requires_event_type' => false,
             'active' => true,
         ];

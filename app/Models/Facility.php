@@ -21,6 +21,8 @@ class Facility extends Model
         'allow_custom_event_name',
         'max_hours',
         'allow_custom_events',
+        'booking_group',
+        'booking_capacity',
     ];
 
     protected $casts = [
@@ -31,6 +33,7 @@ class Facility extends Model
         'allow_custom_event_name' => 'boolean',
         'max_hours' => 'integer',
         'allow_custom_events' => 'boolean',
+        'booking_capacity' => 'integer',
     ];
 
     public function reservations()

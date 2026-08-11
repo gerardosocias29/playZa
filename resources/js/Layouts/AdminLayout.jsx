@@ -61,15 +61,15 @@ export default function AdminLayout({ children, title }) {
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row font-sans">
             
-            {/* Sidebar (Brand Styled #0b1c30) */}
-            <aside className={`w-full md:w-64 bg-[#0b1c30] text-slate-300 flex flex-col fixed md:sticky top-0 h-[calc(100vh-65px)] md:h-screen z-40 transition-transform duration-300 md:translate-x-0 border-r border-white/10 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+            {/* Sidebar */}
+            <aside className={`w-full md:w-72 bg-slate-950 text-slate-300 flex flex-col fixed md:sticky top-0 h-[calc(100vh-65px)] md:h-screen z-40 transition-transform duration-300 md:translate-x-0 border-r border-slate-800 shadow-2xl ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
                 {/* Brand Logo Section */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
+                <div className="flex items-center justify-between px-5 py-5 border-b border-slate-800 bg-slate-950/90">
                     <Link href="/admin/dashboard" className="flex items-center gap-3">
                         <img 
                             src="/images/playza_horizontal.png" 
                             alt="PlayZa Logo" 
-                            className="h-10 object-contain drop-shadow"
+                            className="h-10 object-contain drop-shadow-md brightness-0 invert"
                         />
                     </Link>
                     <button 
@@ -87,7 +87,7 @@ export default function AdminLayout({ children, title }) {
                     <div className="space-y-6">
                         {menuGroups.map((group) => (
                             <div key={group.title} className="space-y-2">
-                                <h3 className="px-3 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                                <h3 className="px-3 text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">
                                     {group.title}
                                 </h3>
                                 <ul className="space-y-1">
@@ -97,14 +97,14 @@ export default function AdminLayout({ children, title }) {
                                             <li key={item.name}>
                                                 <Link
                                                     href={item.href}
-                                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150 ${
+                                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${
                                                         isActive
-                                                            ? 'bg-slate-700/40 text-white border-l-4 border-indigo-500'
-                                                            : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+                                                            ? 'bg-indigo-500/15 text-white shadow-inner ring-1 ring-indigo-400/40 border-l-4 border-indigo-400'
+                                                            : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
                                                     }`}
                                                     onClick={() => setIsMobileMenuOpen(false)}
                                                 >
-                                                    <svg className={`h-5 w-5 ${isActive ? 'text-white' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <svg className={`h-5 w-5 ${isActive ? 'text-indigo-300' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
                                                     </svg>
                                                     {item.name}
@@ -121,9 +121,9 @@ export default function AdminLayout({ children, title }) {
                     <div className="pt-6 border-t border-slate-700/30">
                         <button
                             onClick={handleLogout}
-                            className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-slate-400 hover:text-rose-450 hover:bg-rose-500/10 transition-all duration-150 text-left cursor-pointer"
+                            className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:text-rose-300 hover:bg-rose-500/10 transition-all duration-150 text-left cursor-pointer"
                         >
-                            <svg className="h-5 w-5 text-slate-400 group-hover:text-rose-450 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="h-5 w-5 text-slate-400 group-hover:text-rose-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                             </svg>
                             Logout

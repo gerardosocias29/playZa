@@ -8,6 +8,7 @@ export default function UserLayout({ children, title, activeSection = '' }) {
 
     const [isScrolled, setIsScrolled] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const profileRef = useRef(null);
 
     // Scroll listener for header shadow
@@ -46,6 +47,34 @@ export default function UserLayout({ children, title, activeSection = '' }) {
     const isHomePage = currentPath === '/' || currentPath === '/dashboard';
     const activeNavSection = isHomePage ? (activeSection || 'home') : '';
 
+    const scrollToSection = (sectionId) => {
+        if (window.location.pathname !== '/') {
+            router.visit('/', {
+                preserveState: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                    setTimeout(() => {
+                        const el = document.getElementById(sectionId);
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }, 50);
+                },
+            });
+            return;
+        }
+
+        const element = document.getElementById(sectionId);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
+    const handleSectionClick = (sectionId) => {
+        setIsMobileMenuOpen(false);
+        scrollToSection(sectionId);
+    };
+
     const isHomeActive = isHomePage && activeNavSection === 'home';
     const isFacilitiesActive = isHomePage ? activeNavSection === 'facilities' : currentPath === '/user/facilities';
     const isAboutActive = isHomePage && activeNavSection === 'about';
@@ -80,8 +109,9 @@ export default function UserLayout({ children, title, activeSection = '' }) {
 
                     {/* Navigation Menu (Home | Facilities | About) */}
                     <nav className="hidden md:flex items-center gap-8">
-                        <Link
-                            href="/#home"
+                        <button
+                            type="button"
+                            onClick={() => handleSectionClick('home')}
                             className={`relative text-sm font-extrabold transition-all duration-200 py-1 ${
                                 isHomeActive
                                     ? 'text-[#0077CC]'
@@ -92,10 +122,11 @@ export default function UserLayout({ children, title, activeSection = '' }) {
                             {isHomeActive && (
                                 <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#0077CC] rounded-full transition-all"></span>
                             )}
-                        </Link>
+                        </button>
 
-                        <a
-                            href="/#facilities"
+                        <button
+                            type="button"
+                            onClick={() => handleSectionClick('facilities')}
                             className={`relative text-sm font-extrabold transition-all duration-200 py-1 ${
                                 isFacilitiesActive
                                     ? 'text-[#0077CC]'
@@ -106,10 +137,11 @@ export default function UserLayout({ children, title, activeSection = '' }) {
                             {isFacilitiesActive && (
                                 <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#0077CC] rounded-full transition-all"></span>
                             )}
-                        </a>
+                        </button>
 
-                        <a
-                            href="/#about"
+                        <button
+                            type="button"
+                            onClick={() => handleSectionClick('about')}
                             className={`relative text-sm font-extrabold transition-all duration-200 py-1 ${
                                 isAboutActive
                                     ? 'text-[#0077CC]'
@@ -120,11 +152,21 @@ export default function UserLayout({ children, title, activeSection = '' }) {
                             {isAboutActive && (
                                 <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#0077CC] rounded-full transition-all"></span>
                             )}
-                        </a>
+                        </button>
                     </nav>
 
                     {/* Right User Actions (Identical across all pages) */}
                     <div className="flex items-center gap-4">
+                        <button
+                            type="button"
+                            className="md:hidden inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white/90 p-2 text-slate-700 shadow-sm"
+                            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+                            aria-label="Toggle navigation"
+                        >
+                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
                         {user ? (
                             <div className="flex items-center gap-3 sm:gap-5">
                                 {/* 1. My Reservations Link */}
@@ -251,6 +293,34 @@ export default function UserLayout({ children, title, activeSection = '' }) {
                     </div>
                 </div>
             </header>
+
+            {isMobileMenuOpen && (
+                <div className="md:hidden fixed top-[76px] left-4 right-4 z-40 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-xl backdrop-blur-md">
+                    <div className="flex flex-col gap-2">
+                        <button
+                            type="button"
+                            onClick={() => handleSectionClick('home')}
+                            className={`rounded-xl px-3 py-2 text-left text-sm font-extrabold ${isHomeActive ? 'bg-[#0077CC]/10 text-[#0077CC]' : 'text-slate-700 hover:bg-slate-100'}`}
+                        >
+                            Home
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleSectionClick('facilities')}
+                            className={`rounded-xl px-3 py-2 text-left text-sm font-extrabold ${isFacilitiesActive ? 'bg-[#0077CC]/10 text-[#0077CC]' : 'text-slate-700 hover:bg-slate-100'}`}
+                        >
+                            Facilities
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleSectionClick('about')}
+                            className={`rounded-xl px-3 py-2 text-left text-sm font-extrabold ${isAboutActive ? 'bg-[#0077CC]/10 text-[#0077CC]' : 'text-slate-700 hover:bg-slate-100'}`}
+                        >
+                            About
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Main Content Area */}
             <main className="flex-1 pt-28 pb-16 px-6 max-w-7xl w-full mx-auto relative">

@@ -32,6 +32,8 @@ class FacilityController extends Controller
             'max_hours' => 'nullable|integer|min:1|max:24',
             'allow_custom_events' => 'boolean',
             'images' => 'nullable|array',
+            'booking_group' => 'nullable|string|max:50',
+            'booking_capacity' => 'nullable|integer|min:1|max:20',
             'active' => 'boolean',
         ]);
 
@@ -53,6 +55,8 @@ class FacilityController extends Controller
             'max_hours' => 'nullable|integer|min:1|max:24',
             'allow_custom_events' => 'boolean',
             'images' => 'nullable|array',
+            'booking_group' => 'nullable|string|max:50',
+            'booking_capacity' => 'nullable|integer|min:1|max:20',
             'active' => 'boolean',
         ]);
 

@@ -71,17 +71,17 @@ export default function Welcome({ facilities: serverFacilities = [], reservation
                     <p className="text-base md:text-lg text-slate-600 max-w-2xl mb-10 leading-relaxed font-medium">
                         Check real-time facility availability, inspect 24-hour schedules, and reserve sports courts and municipal grounds across Getafe.
                     </p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center w-full max-w-sm sm:max-w-none">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center w-full max-w-xs sm:max-w-none">
                         <button
                             onClick={() => handleOpenAvailabilityModal(displayFacilities[0])}
-                            className="px-8 py-4 bg-[#0b1c30] hover:bg-[#132c4a] text-white font-extrabold rounded-xl shadow-lg transition-all duration-200 text-sm hover-scale text-center flex items-center justify-center gap-2 active:scale-95"
+                            className="w-full sm:w-auto px-5 sm:px-8 py-3.5 sm:py-4 bg-[#0b1c30] hover:bg-[#132c4a] text-white font-extrabold rounded-xl shadow-lg transition-all duration-200 text-sm hover-scale text-center flex items-center justify-center gap-2 active:scale-95"
                         >
                             Check Availability <span className="text-[#add911]">→</span>
                         </button>
                         <a
                             href="#facilities"
                             onClick={(e) => scrollToSection(e, 'facilities')}
-                            className="px-8 py-4 bg-white hover:bg-slate-50 border border-slate-200 text-[#0b1c30] font-bold rounded-xl transition-colors duration-200 text-sm text-center shadow-sm"
+                            className="w-full sm:w-auto px-5 sm:px-8 py-3.5 sm:py-4 bg-white hover:bg-slate-50 border border-slate-200 text-[#0b1c30] font-bold rounded-xl transition-colors duration-200 text-sm text-center shadow-sm"
                         >
                             Browse Facilities
                         </a>
@@ -222,10 +222,10 @@ export default function Welcome({ facilities: serverFacilities = [], reservation
                     </div>
 
                     {/* Call To Action Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center w-full max-w-sm sm:max-w-none mx-auto">
+                    <div className="flex justify-center w-full mx-auto">
                         <button
                             onClick={() => handleOpenAvailabilityModal(displayFacilities[0])}
-                            className="px-8 py-4 bg-[#0b1c30] hover:bg-[#132c4a] text-white font-extrabold rounded-xl shadow-lg transition-all duration-200 text-sm hover-scale text-center flex items-center justify-center gap-2 active:scale-95"
+                            className="w-full max-w-xs sm:max-w-none sm:w-auto px-5 sm:px-8 py-3.5 sm:py-4 bg-[#0b1c30] hover:bg-[#132c4a] text-white font-extrabold rounded-xl shadow-lg transition-all duration-200 text-sm hover-scale text-center flex items-center justify-center gap-2 active:scale-95"
                         >
                             Check Availability <span className="text-[#add911]">→</span>
                         </button>

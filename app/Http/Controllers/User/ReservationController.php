@@ -97,7 +97,13 @@ class ReservationController extends Controller
             return back()->withErrors(['event_type' => 'Event type or custom event name is required for this facility.']);
         }
 
-        if ($facility->max_hours && $facility->max_hours > 0) {
+        $eventType = trim((string) ($validated['event_type'] ?? ''));
+        $eventName = trim((string) ($validated['custom_event_name'] ?? ''));
+        $allowsExtendedEventBooking = in_array(strtolower($eventType), ['intramurals', 'tournament', 'exhibition match'], true)
+            || ($eventType === 'Others' && $eventName !== '')
+            || ($facility->requires_event_type && $eventName !== '');
+
+        if ($facility->max_hours && $facility->max_hours > 0 && ! $allowsExtendedEventBooking) {
             $startDateObj = Carbon::parse($validated['reservation_date']);
             $endDateObj = Carbon::parse(($validated['end_date'] ?? null) ?: $validated['reservation_date']);
             $daysCount = $startDateObj->diffInDays($endDateObj) + 1;
@@ -112,6 +118,17 @@ class ReservationController extends Controller
 
         $startDate = $validated['reservation_date'];
         $endDate = ($validated['end_date'] ?? null) ?: $startDate;
+
+        if ($startDate === now()->toDateString()) {
+            $currentHour = (int) now()->format('H');
+            $requestedStartHour = (int) substr($validated['start_time'], 0, 2);
+
+            if ($requestedStartHour <= $currentHour) {
+                return back()->withErrors([
+                    'start_time' => 'Reservations for today must start after the current time. Please choose the next available hour slot.',
+                ]);
+            }
+        }
 
         $blockedSchedule = Schedule::where('facility_id', $validated['facility_id'])
             ->whereIn('status', ['blocked', 'maintenance'])
@@ -131,14 +148,20 @@ class ReservationController extends Controller
         }
 
         $newIntervals = $this->occupiedIntervals($startDate, $endDate, $validated['start_time'], $validated['end_time']);
+        $groupName = $facility->booking_group ?? 'indoor';
+        $groupCapacity = max(1, (int) ($facility->booking_capacity ?? 1));
 
-        // Pull anything on this facility whose date window could touch ours. The
-        // one-day margin on each side covers bookings that wrap past midnight.
-        $existingReservations = Reservation::where('facility_id', $validated['facility_id'])
+        $groupFacilityIds = Facility::where('booking_group', $groupName)
+            ->pluck('id')
+            ->toArray();
+
+        $existingReservations = Reservation::whereIn('facility_id', $groupFacilityIds)
             ->whereIn('status', ['pending', 'approved'])
             ->whereDate('reservation_date', '<=', Carbon::parse($endDate)->addDay()->toDateString())
             ->whereDate(DB::raw('COALESCE(end_date, reservation_date)'), '>=', Carbon::parse($startDate)->subDay()->toDateString())
             ->get();
+
+        $overlapCount = 0;
 
         foreach ($existingReservations as $existing) {
             $existingIntervals = $this->occupiedIntervals(
@@ -150,18 +173,20 @@ class ReservationController extends Controller
 
             foreach ($newIntervals as $new) {
                 foreach ($existingIntervals as $taken) {
-                    // Overlap when (StartA < EndB) and (EndA > StartB)
                     if ($new[0] < $taken[1] && $new[1] > $taken[0]) {
-                        $when = $existing->end_date && $existing->end_date !== $existing->reservation_date
-                            ? "{$existing->reservation_date} to {$existing->end_date}"
-                            : $existing->reservation_date;
-
-                        return back()->withErrors([
-                            'start_time' => "Double booking conflict! The facility is already reserved from {$existing->start_time} to {$existing->end_time} on {$when}.",
-                        ]);
+                        $overlapCount++;
+                        break 2;
                     }
                 }
             }
+        }
+
+        if ($overlapCount >= $groupCapacity) {
+            $label = ucfirst($groupName);
+
+            return back()->withErrors([
+                'start_time' => "Booking conflict! The {$label} group is already at capacity for this time slot.",
+            ]);
         }
 
         $reservation = Reservation::create([

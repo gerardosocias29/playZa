@@ -33,11 +33,6 @@ const EVENT_TYPES = [
     'Others',
 ];
 
-const MODES = [
-    { id: 'single', label: 'Single day', desc: 'One date' },
-    { id: 'range', label: 'Multiple days', desc: 'Same time, date range' },
-];
-
 export default function AvailabilityModal({
     isOpen,
     onClose,
@@ -53,6 +48,7 @@ export default function AvailabilityModal({
     const currentHour = new Date().getHours();
 
     const [mode, setMode] = useState('single');
+    const isRangeEnabled = false;
     const [facilityId, setFacilityId] = useState(facility?.id ?? null);
     const [startHour, setStartHour] = useState(8);
     const [endAbsHour, setEndAbsHour] = useState(17); // absolute hours from start-day midnight
@@ -154,11 +150,13 @@ export default function AvailabilityModal({
     }, [isOpen, onClose]);
 
     const switchMode = (next) => {
-        setMode(next);
-        setSelection((sel) => newSelection(sel.startDate));
-        const defaultDur = facilityMaxHours ? Math.min(2, facilityMaxHours) : 2;
-        setStartHour(8);
-        setEndAbsHour(8 + defaultDur);
+        if (next === 'single') {
+            setMode('single');
+            setSelection((sel) => newSelection(sel.startDate));
+            const defaultDur = facilityMaxHours ? Math.min(2, facilityMaxHours) : 2;
+            setStartHour(8);
+            setEndAbsHour(8 + defaultDur);
+        }
     };
 
     /*
@@ -351,30 +349,29 @@ export default function AvailabilityModal({
         >
             <div
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-4xl max-h-[90vh] flex flex-col bg-white rounded-t-3xl sm:rounded-2xl border border-slate-200 shadow-2xl overflow-hidden"
+                className="w-full h-full sm:h-auto sm:max-w-4xl sm:max-h-[92vh] flex flex-col bg-white rounded-t-3xl sm:rounded-2xl border border-slate-200 shadow-2xl overflow-hidden"
             >
                 {/* Header */}
-                <header className="shrink-0 border-b border-slate-200 px-5 py-3.5 flex items-center justify-between gap-3 flex-wrap bg-white">
-                    <div className="flex items-center gap-3 flex-wrap">
+                <header className="shrink-0 border-b border-slate-200 px-3 py-3 sm:px-5 sm:py-3.5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white">
+                    <div className="flex items-center gap-3 min-w-0">
                         <div className="min-w-0">
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0077CC]">
+                            <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-[#0077CC]">
                                 Check Availability
                             </p>
-                            <h2 className="text-lg font-title font-black text-[#0b1c30] truncate leading-tight">
+                            <h2 className="text-base sm:text-lg font-title font-black text-[#0b1c30] truncate leading-tight">
                                 {activeFacility.name}
                             </h2>
-
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2.5 flex-wrap">
+                    <div className="flex items-center gap-2.5 w-full sm:w-auto">
                         {facilityList.length > 1 && (
-                            <div className="flex items-center gap-1.5">
-                                <label className="text-xs font-bold text-slate-500 hidden sm:inline">Facility:</label>
+                            <div className="flex items-center gap-1.5 flex-1 sm:flex-none">
+                                <label className="text-[10px] sm:text-xs font-bold text-slate-500 hidden sm:inline">Facility:</label>
                                 <select
                                     value={activeFacility.id}
                                     onChange={(e) => setFacilityId(e.target.value)}
-                                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-[#0b1c30] shadow-xs focus:ring-2 focus:ring-[#0077CC]"
+                                    className="w-full sm:w-auto px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-[10px] sm:text-xs font-bold text-[#0b1c30] shadow-xs focus:ring-2 focus:ring-[#0077CC]"
                                 >
                                     {facilityList.map((f) => (
                                         <option key={f.id} value={f.id}>
@@ -397,37 +394,26 @@ export default function AvailabilityModal({
                     </div>
                 </header>
 
-                {/* Compact Mode Switcher */}
-                <div className="shrink-0 border-b border-slate-200 px-5 py-2 flex items-center gap-2 bg-slate-50/60">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider mr-1">Mode:</span>
-                    <div className="inline-flex p-1 bg-slate-200/70 rounded-xl gap-1">
-                        {MODES.map((m) => {
-                            const isActive = mode === m.id;
-                            return (
-                                <button
-                                    key={m.id}
-                                    type="button"
-                                    onClick={() => switchMode(m.id)}
-                                    className={`px-3 py-1 rounded-lg text-xs font-extrabold transition-all ${
-                                        isActive ? 'bg-white text-[#0b1c30] shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                                    }`}
-                                >
-                                    {m.label}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
+                {!isRangeEnabled && (
+                    <div className="shrink-0 border-b border-slate-200 px-5 py-2 bg-slate-50/60" aria-hidden="true" />
+                )}
 
                 {/* Body */}
-                <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-[300px_minmax(0,1fr)]">
+                <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)]">
+                    {!user && (
+                        <div className="lg:hidden px-3 pt-3 pb-2 bg-slate-50 border-b border-slate-200">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Next step</p>
+                            <p className="text-xs font-bold text-slate-700">Choose a date and time, then sign in to confirm.</p>
+                        </div>
+                    )}
+
                     {/* Calendar */}
-                    <div className="p-5 border-b md:border-b-0 md:border-r border-slate-200">
-                        <span className="block text-[10.5px] font-black uppercase tracking-wider text-slate-500 mb-3">
-                            {mode === 'range' ? 'Select Date Range' : mode === 'overnight' ? 'Start Date' : 'Select Date'}
+                    <div className="p-3 sm:p-5 border-b lg:border-b-0 lg:border-r border-slate-200">
+                        <span className="block text-[10px] sm:text-[10.5px] font-black uppercase tracking-wider text-slate-500 mb-3">
+                            Select Date
                         </span>
 
-                        <div className="flex items-center justify-between mb-2.5">
+                        <div className="flex items-center justify-between mb-2.5 gap-2">
                             <button
                                 type="button"
                                 onClick={() => shiftMonth(-1)}
@@ -435,7 +421,7 @@ export default function AvailabilityModal({
                             >
                                 ‹
                             </button>
-                            <span className="text-sm font-black text-[#0b1c30]">
+                            <span className="text-xs sm:text-sm font-black text-[#0b1c30] text-center">
                                 {MONTHS[viewMonth.getMonth()]} {viewMonth.getFullYear()}
                             </span>
                             <button
@@ -447,23 +433,22 @@ export default function AvailabilityModal({
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-7 gap-1 mb-1">
+                        <div className="grid grid-cols-7 gap-[3px] sm:gap-1 mb-1">
                             {DOW.map((d, i) => (
-                                <span key={i} className="text-center text-[10px] font-black text-slate-400 py-1">
+                                <span key={i} className="text-center text-[8px] sm:text-[10px] font-black text-slate-400 py-0.5 sm:py-1">
                                     {d}
                                 </span>
                             ))}
                         </div>
 
-                        <div className="grid grid-cols-7 gap-1 select-none">
+                        <div className="grid grid-cols-7 gap-[3px] sm:gap-1 select-none">
                             {calendarDays.map((cell, idx) => {
                                 if (!cell) return <span key={`blank-${idx}`} className="aspect-square" />;
 
                                 const level = dayLevel(cell.dateStr);
                                 const isPast = level === 'past';
                                 const isSelected = cell.dateStr === startDate || cell.dateStr === endDate;
-                                const inRange =
-                                    mode === 'range' && cell.dateStr > startDate && cell.dateStr < endDate;
+                                const inRange = false;
                                 const isToday = cell.dateStr === today;
 
                                 let tone = 'text-[#0b1c30] hover:bg-[#0077CC]/10';
@@ -485,24 +470,22 @@ export default function AvailabilityModal({
                                         type="button"
                                         disabled={isPast}
                                         onPointerDown={(e) => {
-                                            // Keep the pointer's events on this element so a slide
-                                            // across the grid keeps firing onPointerEnter.
                                             e.currentTarget.releasePointerCapture?.(e.pointerId);
                                             beginSelect(cell.dateStr);
                                         }}
                                         onPointerEnter={() => extendSelect(cell.dateStr)}
-                                        className={`aspect-square rounded-lg flex flex-col items-center justify-center text-xs font-bold transition-colors border touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-[#0077CC] focus-visible:ring-offset-1 ${
+                                        className={`aspect-square rounded-md sm:rounded-lg flex flex-col items-center justify-center text-[10px] sm:text-xs font-bold transition-colors border touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-[#0077CC] focus-visible:ring-offset-1 ${
                                             isToday && !isSelected ? 'border-[#0077CC]' : 'border-transparent'
                                         } ${tone}`}
                                     >
-                                        {cell.day}
+                                        <span className="leading-none">{cell.day}</span>
                                         {!isPast && <span className={`w-1 h-1 rounded-full mt-0.5 ${dotColor}`} />}
                                     </button>
                                 );
                             })}
                         </div>
 
-                        <div className="flex gap-3 mt-3 flex-wrap">
+                        <div className="hidden sm:flex gap-3 mt-3 flex-wrap">
                             {[
                                 ['bg-emerald-500', 'Open'],
                                 ['bg-amber-500', 'Limited'],
@@ -515,7 +498,7 @@ export default function AvailabilityModal({
                             ))}
                         </div>
 
-                        {mode === 'range' && (
+                        {isRangeEnabled && (
                             <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
                                 <p className="text-[11px] font-bold text-slate-500">
                                     {selectedDates.length === 1
@@ -551,51 +534,58 @@ export default function AvailabilityModal({
                             Start Time → End Time
                         </span>
 
-                        <div className="flex items-center gap-3">
-                            <select
-                                value={startHour}
-                                onChange={(e) => {
-                                    const next = Number(e.target.value);
-                                    setStartHour(next);
-                                    const maxAllowed = facilityMaxHours ? next + facilityMaxHours : 24;
-                                    if (mode !== 'overnight') {
-                                        if (endAbsHour <= next) {
-                                            setEndAbsHour(Math.min(next + (facilityMaxHours ? Math.min(2, facilityMaxHours) : 2), maxAllowed));
-                                        } else if (endAbsHour > maxAllowed) {
-                                            setEndAbsHour(maxAllowed);
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                                    Start time
+                                </label>
+                                <select
+                                    value={startHour}
+                                    onChange={(e) => {
+                                        const next = Number(e.target.value);
+                                        setStartHour(next);
+                                        const maxAllowed = facilityMaxHours ? next + facilityMaxHours : 24;
+                                        if (mode !== 'overnight') {
+                                            if (endAbsHour <= next) {
+                                                setEndAbsHour(Math.min(next + (facilityMaxHours ? Math.min(2, facilityMaxHours) : 2), maxAllowed));
+                                            } else if (endAbsHour > maxAllowed) {
+                                                setEndAbsHour(maxAllowed);
+                                            }
                                         }
-                                    }
-                                }}
-                                className="flex-1 min-w-0 rounded-xl border-slate-200 bg-white text-sm font-black text-[#0b1c30] focus:border-[#0077CC] focus:ring-[#0077CC]"
-                            >
-                                {startOptions.length > 0 ? (
-                                    startOptions.map((h) => (
+                                    }}
+                                    className="w-full rounded-xl border-slate-200 bg-white text-sm font-black text-[#0b1c30] focus:border-[#0077CC] focus:ring-[#0077CC]"
+                                >
+                                    {startOptions.length > 0 ? (
+                                        startOptions.map((h) => (
+                                            <option key={h} value={h}>
+                                                {hourLabel(h)}
+                                            </option>
+                                        ))
+                                    ) : (
+                                        <option value={startHour}>No hours left today</option>
+                                    )}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                                    End time
+                                </label>
+                                <select
+                                    value={endAbsHour}
+                                    onChange={(e) => setEndAbsHour(Number(e.target.value))}
+                                    className="w-full rounded-xl border-slate-200 bg-white text-sm font-black text-[#0b1c30] focus:border-[#0077CC] focus:ring-[#0077CC]"
+                                >
+                                    {endOptions.map((h) => (
                                         <option key={h} value={h}>
-                                            {hourLabel(h)}
+                                            {hourLabel(h, h > 24)}
                                         </option>
-                                    ))
-                                ) : (
-                                    <option value={startHour}>No hours left today</option>
-                                )}
-                            </select>
-
-                            <span className="text-slate-300 font-bold shrink-0">→</span>
-
-                            <select
-                                value={endAbsHour}
-                                onChange={(e) => setEndAbsHour(Number(e.target.value))}
-                                className="flex-1 min-w-0 rounded-xl border-slate-200 bg-white text-sm font-black text-[#0b1c30] focus:border-[#0077CC] focus:ring-[#0077CC]"
-                            >
-                                {endOptions.map((h) => (
-                                    <option key={h} value={h}>
-                                        {hourLabel(h, h > 24)}
-                                    </option>
-                                ))}
-                            </select>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
 
-                        {/* Timeline */}
-                        <div className="mt-7">
+                        <div className="hidden sm:block mt-7">
                             <div
                                 ref={timelineRef}
                                 onPointerDown={(e) => handleTimelinePointerDown(e, 'jump')}
@@ -635,7 +625,6 @@ export default function AvailabilityModal({
                                             width: `${(hoursPerDay / timelineSpan) * 100}%`,
                                         }}
                                     >
-                                        {/* Left / Right Drag Handles only if hoursPerDay > 1 */}
                                         {hoursPerDay > 1 && (
                                             <>
                                                 <div
@@ -682,7 +671,7 @@ export default function AvailabilityModal({
                             </div>
                         </div>
 
-                        <div className="flex gap-3 flex-wrap mt-4">
+                        <div className="hidden sm:flex gap-3 flex-wrap mt-4">
                             {[
                                 ['bg-white border-slate-200', 'Open'],
                                 ['bg-[#0077CC]/15 border-[#0077CC]', 'Selected'],
@@ -794,8 +783,8 @@ export default function AvailabilityModal({
                 </div>
 
                 {/* Footer */}
-                <footer className="shrink-0 border-t border-slate-200 bg-white px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="text-[13px] font-bold text-slate-500 min-w-0">
+                <footer className="shrink-0 sticky bottom-0 border-t border-slate-200 bg-white/95 backdrop-blur-sm px-3 py-3 sm:px-6 sm:py-4 flex flex-col gap-3 sm:flex-row sm:items-center justify-between shadow-[0_-8px_24px_-20px_rgba(15,23,42,0.5)]">
+                    <div className="text-[12px] sm:text-[13px] font-bold text-slate-500 min-w-0">
                         {hoursPerDay > 0 ? (
                             <>
                                 <b className="text-[#0b1c30]">
@@ -815,7 +804,7 @@ export default function AvailabilityModal({
                             type="button"
                             onClick={handleSubmit}
                             disabled={!canSubmit}
-                            className="h-12 px-6 rounded-xl bg-[#0b1c30] hover:bg-[#132c4a] text-white text-sm font-extrabold shadow-md transition-all active:scale-[0.99] disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center gap-2 shrink-0"
+                            className="w-full sm:w-auto h-12 px-6 rounded-xl bg-[#0b1c30] hover:bg-[#132c4a] text-white text-sm font-extrabold shadow-md transition-all active:scale-[0.99] disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center gap-2 shrink-0"
                         >
                             {submitting ? 'Sending…' : 'Request Booking'}
                             <span className="text-[#add911]">→</span>
@@ -823,7 +812,7 @@ export default function AvailabilityModal({
                     ) : (
                         <Link
                             href="/login"
-                            className="h-12 px-6 rounded-xl bg-[#0b1c30] hover:bg-[#132c4a] text-white text-sm font-extrabold shadow-md transition-all flex items-center justify-center gap-2 shrink-0"
+                            className="w-full sm:w-auto h-12 px-6 rounded-xl bg-[#0b1c30] hover:bg-[#132c4a] text-white text-sm font-extrabold shadow-md transition-all flex items-center justify-center gap-2 shrink-0"
                         >
                             Sign in to book <span className="text-[#add911]">→</span>
                         </Link>

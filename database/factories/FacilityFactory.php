@@ -21,10 +21,12 @@ class FacilityFactory extends Factory
     {
         return [
             'name' => $this->faker->words(2, true).' Court',
-            'type' => $this->faker->randomElement(['Indoor', 'Outdoor']),
-            'category' => $this->faker->randomElement(['Sports', 'Events']),
+            'type' => 'Indoor',
+            'category' => 'Sports',
             'description' => $this->faker->sentence(),
             'capacity' => 50,
+            'booking_group' => 'indoor',
+            'booking_capacity' => 1,
             'requires_event_type' => false,
             'active' => true,
         ];

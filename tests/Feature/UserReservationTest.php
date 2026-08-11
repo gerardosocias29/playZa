@@ -80,6 +80,145 @@ class UserReservationTest extends TestCase
         $response->assertSessionHasErrors(['start_time']);
     }
 
+    public function test_same_booking_group_reaches_capacity_and_conflicts(): void
+    {
+        $date = date('Y-m-d', strtotime('+2 days'));
+
+        $indoorOne = Facility::factory()->create([
+            'name' => 'Basketball Court A',
+            'type' => 'Indoor',
+            'booking_group' => 'indoor',
+            'booking_capacity' => 1,
+            'active' => true,
+        ]);
+
+        $indoorTwo = Facility::factory()->create([
+            'name' => 'Basketball Court B',
+            'type' => 'Indoor',
+            'booking_group' => 'indoor',
+            'booking_capacity' => 1,
+            'active' => true,
+        ]);
+
+        Reservation::create([
+            'user_id' => $this->user->id,
+            'facility_id' => $indoorOne->id,
+            'reservation_date' => $date,
+            'start_time' => '18:00',
+            'end_time' => '20:00',
+            'duration_hours' => 2,
+            'status' => 'approved',
+        ]);
+
+        $anotherUser = User::factory()->create(['role' => 'user', 'status' => 'approved']);
+
+        $response = $this->actingAs($anotherUser)->post(route('reservations.store'), [
+            'facility_id' => $indoorTwo->id,
+            'reservation_date' => $date,
+            'start_time' => '19:00',
+            'end_time' => '21:00',
+            'duration_hours' => 2,
+        ]);
+
+        $response->assertSessionHasErrors(['start_time']);
+    }
+
+    public function test_same_booking_group_allows_capacity_two_for_outdoor_facilities(): void
+    {
+        $date = date('Y-m-d', strtotime('+3 days'));
+
+        $tennisOne = Facility::factory()->create([
+            'name' => 'Tennis Court A',
+            'type' => 'Outdoor',
+            'booking_group' => 'outdoor',
+            'booking_capacity' => 2,
+            'active' => true,
+        ]);
+
+        $tennisTwo = Facility::factory()->create([
+            'name' => 'Tennis Court B',
+            'type' => 'Outdoor',
+            'booking_group' => 'outdoor',
+            'booking_capacity' => 2,
+            'active' => true,
+        ]);
+
+        Reservation::create([
+            'user_id' => $this->user->id,
+            'facility_id' => $tennisOne->id,
+            'reservation_date' => $date,
+            'start_time' => '14:00',
+            'end_time' => '16:00',
+            'duration_hours' => 2,
+            'status' => 'approved',
+        ]);
+
+        $anotherUser = User::factory()->create(['role' => 'user', 'status' => 'approved']);
+
+        $response = $this->actingAs($anotherUser)->post(route('reservations.store'), [
+            'facility_id' => $tennisTwo->id,
+            'reservation_date' => $date,
+            'start_time' => '15:00',
+            'end_time' => '17:00',
+            'duration_hours' => 2,
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('reservations', [
+            'facility_id' => $tennisTwo->id,
+            'reservation_date' => $date,
+            'status' => 'pending',
+        ]);
+    }
+
+    public function test_user_can_book_intramurals_as_long_event_booking(): void
+    {
+        $this->facility->update([
+            'requires_event_type' => true,
+            'event_options' => ['Intramurals', 'Tournament', 'Exhibition Match', 'Others'],
+            'allow_custom_event_name' => true,
+            'max_hours' => 2,
+        ]);
+
+        $date = date('Y-m-d', strtotime('+2 days'));
+
+        $response = $this->actingAs($this->user)->post(route('reservations.store'), [
+            'facility_id' => $this->facility->id,
+            'reservation_date' => $date,
+            'start_time' => '08:00',
+            'end_time' => '17:00',
+            'duration_hours' => 9,
+            'event_type' => 'Intramurals',
+            'custom_event_name' => 'Campus Intramurals',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('reservations', [
+            'user_id' => $this->user->id,
+            'facility_id' => $this->facility->id,
+            'reservation_date' => $date,
+            'event_type' => 'Intramurals',
+            'custom_event_name' => 'Campus Intramurals',
+            'status' => 'pending',
+        ]);
+    }
+
+    public function test_same_day_booking_cannot_start_in_the_past(): void
+    {
+        $today = date('Y-m-d');
+        $pastHour = max(0, (int) date('H') - 1);
+
+        $response = $this->actingAs($this->user)->post(route('reservations.store'), [
+            'facility_id' => $this->facility->id,
+            'reservation_date' => $today,
+            'start_time' => sprintf('%02d:00', $pastHour),
+            'end_time' => sprintf('%02d:00', $pastHour + 2),
+            'duration_hours' => 2,
+        ]);
+
+        $response->assertSessionHasErrors(['start_time']);
+    }
+
     public function test_user_can_cancel_own_reservation(): void
     {
         $reservation = Reservation::create([

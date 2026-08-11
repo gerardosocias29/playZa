@@ -19,6 +19,8 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->integer('capacity')->default(50);
             $table->json('images')->nullable();
+            $table->string('booking_group')->nullable()->default('indoor');
+            $table->unsignedTinyInteger('booking_capacity')->nullable()->default(1);
             $table->boolean('active')->default(true);
             $table->boolean('requires_event_type')->default(false);
             $table->timestamps();

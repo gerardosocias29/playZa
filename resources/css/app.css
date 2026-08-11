@@ -11,6 +11,10 @@
         --color-warning: 217, 119, 6; /* amber-600 */
     }
 
+    html {
+        scroll-behavior: smooth;
+    }
+
     body {
         background-color: #f8fafc;
         color: #0b1c30;
