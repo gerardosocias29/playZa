@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
-import UserLayout from '@/Layouts/UserLayout';
+import PublicLayout from '@/Layouts/PublicLayout';
 import FacilityCarousel from '@/Components/FacilityCarousel';
 import AvailabilityModal from '@/Components/AvailabilityModal';
 import { getFacilities } from '@/mockData';
@@ -52,7 +52,7 @@ export default function Welcome({ facilities: serverFacilities = [], reservation
     };
 
     return (
-        <UserLayout title="Welcome to PlayZa - Getafe Sports Reservations" activeSection={activeSection}>
+        <PublicLayout title="Welcome to PlayZa - Getafe Sports Reservations" activeSection={activeSection}>
             <Head title="Welcome to PlayZa - Getafe Sports Reservations" />
 
             <div className="space-y-24">
@@ -242,6 +242,6 @@ export default function Welcome({ facilities: serverFacilities = [], reservation
                 schedules={schedules}
                 user={user}
             />
-        </UserLayout>
+        </PublicLayout>
     );
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     addDays,
@@ -41,15 +42,18 @@ export default function AvailabilityModal({
     reservations = [],
     schedules = [],
     user = null,
+    initialFacilityId = null,
+    initialBookingData = null,
 }) {
-    const { errors = {} } = usePage().props;
+    const { auth, errors = {} } = usePage().props;
+    const currentUser = user || auth?.user || null;
 
     const today = formatYMD(new Date());
     const currentHour = new Date().getHours();
 
     const [mode, setMode] = useState('single');
     const isRangeEnabled = false;
-    const [facilityId, setFacilityId] = useState(facility?.id ?? null);
+    const [facilityId, setFacilityId] = useState(initialFacilityId ?? facility?.id ?? null);
     const [startHour, setStartHour] = useState(8);
     const [endAbsHour, setEndAbsHour] = useState(17); // absolute hours from start-day midnight
     const [viewMonth, setViewMonth] = useState(() => new Date());
@@ -58,6 +62,11 @@ export default function AvailabilityModal({
     const [eventType, setEventType] = useState(EVENT_TYPES[1]);
     const [customEventName, setCustomEventName] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const timelineRef = React.useRef(null);
     const [dragMode, setDragMode] = useState(null); // null | 'move' | 'left' | 'right'
@@ -99,14 +108,16 @@ export default function AvailabilityModal({
             reservations,
             schedules,
         });
-    }, [activeFacility?.id, selectedDates, startHour, endAbsHour, reservations, schedules, hoursPerDay]);
+    }, [activeFacility, hoursPerDay, selectedDates, startHour, endAbsHour, reservations, schedules]);
+
+    const serverError = errors.facility_id || errors.reservation_date || errors.start_time || errors.end_time;
 
     const maxHours = activeFacility?.max_hours || null;
     const exceedsMaxHours = Boolean(maxHours && hoursPerDay > maxHours);
 
     const startsInPast = startDate === today && startHour <= currentHour;
     const canSubmit = Boolean(
-        user && activeFacility && hoursPerDay > 0 && !exceedsMaxHours && !conflict && !startsInPast && !submitting
+        currentUser && activeFacility && hoursPerDay > 0 && !exceedsMaxHours && !conflict && !startsInPast && !submitting
     );
 
     /* ---------- effects ---------- */
@@ -115,17 +126,34 @@ export default function AvailabilityModal({
 
     useEffect(() => {
         if (!isOpen) return;
+
+        if (initialBookingData) {
+            if (initialBookingData.facilityId) setFacilityId(initialBookingData.facilityId);
+            if (initialBookingData.date) {
+                setSelection(newSelection(initialBookingData.date));
+                const parts = initialBookingData.date.split('-');
+                if (parts.length === 3) {
+                    setViewMonth(new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1));
+                }
+            }
+            if (initialBookingData.startHour !== undefined) setStartHour(initialBookingData.startHour);
+            if (initialBookingData.endAbsHour !== undefined) setEndAbsHour(initialBookingData.endAbsHour);
+            if (initialBookingData.eventType) setEventType(initialBookingData.eventType);
+            if (initialBookingData.customEventName) setCustomEventName(initialBookingData.customEventName);
+            return;
+        }
+
         const initial = currentHour >= 22 ? addDays(today, 1) : today;
         const defaultDur = facilityMaxHours ? Math.min(2, facilityMaxHours) : 2;
         const start = initial === today ? Math.min(currentHour + 1, 22) : 8;
         setMode('single');
-        setFacilityId(facility?.id ?? facilityList[0]?.id ?? null);
+        setFacilityId(initialFacilityId ?? facility?.id ?? facilityList[0]?.id ?? null);
         setSelection(newSelection(initial));
         setStartHour(start);
         setEndAbsHour(initial === today ? Math.min(start + defaultDur, 24) : start + defaultDur);
         setViewMonth(new Date());
         setCustomEventName('');
-    }, [isOpen, facility?.id, activeFacility?.max_hours]);
+    }, [isOpen, facility?.id, initialFacilityId, initialBookingData, activeFacility?.max_hours]);
 
     // Coming back to today from a future date can leave the start on an hour
     // that has already passed — nudge it forward so the select stays in sync.
@@ -278,7 +306,6 @@ export default function AvailabilityModal({
         };
 
         const handlePointerUp = () => setDragMode(null);
-
         window.addEventListener('pointermove', handlePointerMove);
         window.addEventListener('pointerup', handlePointerUp);
         return () => {
@@ -287,11 +314,7 @@ export default function AvailabilityModal({
         };
     }, [dragMode, dragOffset, startHour, endAbsHour, minStartHour, maxEndHour, timelineFrom, timelineSpan, facilityMaxHours]);
 
-    if (!isOpen || !activeFacility) return null;
-
-    const serverError = errors.start_time || errors.event_type || errors.reservation_date || errors.end_date;
-
-    let timelineWindows = busyOnDate(startDate)
+    let timelineWindows = (activeFacility ? busyOnDate(startDate) : [])
         .map((w) => ({ ...w, s: w.s / 60, e: w.e / 60 }))
         .concat(
             busyOnDate(addDays(startDate, 1)).map((w) => ({
@@ -338,10 +361,30 @@ export default function AvailabilityModal({
             }
         }
     };
+    const handleSignInToBook = (e) => {
+        e.preventDefault();
+        try {
+            const pendingBooking = {
+                facilityId: activeFacility?.id,
+                date: startDate,
+                startHour,
+                endAbsHour,
+                eventType: activeFacility?.requires_event_type ? eventType : null,
+                customEventName:
+                    activeFacility?.requires_event_type && eventType === 'Others' ? customEventName.trim() : null,
+            };
+            sessionStorage.setItem('playza_pending_booking', JSON.stringify(pendingBooking));
+        } catch (err) {
+            console.error('Failed to save pending booking draft', err);
+        }
+        router.visit('/login');
+    };
 
-    return (
+    if (!isOpen || !mounted || !activeFacility) return null;
+
+    return createPortal(
         <div
-            className="fixed inset-0 z-[9999] bg-slate-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+            className="fixed inset-0 z-[99999] bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 m-0"
             onClick={onClose}
             role="dialog"
             aria-modal="true"
@@ -394,13 +437,9 @@ export default function AvailabilityModal({
                     </div>
                 </header>
 
-                {!isRangeEnabled && (
-                    <div className="shrink-0 border-b border-slate-200 px-5 py-2 bg-slate-50/60" aria-hidden="true" />
-                )}
-
                 {/* Body */}
                 <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)]">
-                    {!user && (
+                    {!currentUser && (
                         <div className="lg:hidden px-3 pt-3 pb-2 bg-slate-50 border-b border-slate-200">
                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Next step</p>
                             <p className="text-xs font-bold text-slate-700">Choose a date and time, then sign in to confirm.</p>
@@ -417,25 +456,27 @@ export default function AvailabilityModal({
                             <button
                                 type="button"
                                 onClick={() => shiftMonth(-1)}
-                                className="h-7 w-7 rounded-lg border border-slate-200 bg-white text-[#0b1c30] hover:bg-slate-50 transition-colors"
+                                className="h-7 w-7 rounded-lg border border-slate-200 bg-white text-[#0b1c30] hover:bg-slate-50 transition-colors flex items-center justify-center font-bold text-sm"
+                                aria-label="Previous month"
                             >
                                 ‹
                             </button>
-                            <span className="text-xs sm:text-sm font-black text-[#0b1c30] text-center">
+                            <span className="text-xs sm:text-sm font-black text-[#0b1c30]">
                                 {MONTHS[viewMonth.getMonth()]} {viewMonth.getFullYear()}
                             </span>
                             <button
                                 type="button"
                                 onClick={() => shiftMonth(1)}
-                                className="h-7 w-7 rounded-lg border border-slate-200 bg-white text-[#0b1c30] hover:bg-slate-50 transition-colors"
+                                className="h-7 w-7 rounded-lg border border-slate-200 bg-white text-[#0b1c30] hover:bg-slate-50 transition-colors flex items-center justify-center font-bold text-sm"
+                                aria-label="Next month"
                             >
                                 ›
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-7 gap-[3px] sm:gap-1 mb-1">
+                        <div className="grid grid-cols-7 gap-1 text-center mb-1 select-none">
                             {DOW.map((d, i) => (
-                                <span key={i} className="text-center text-[8px] sm:text-[10px] font-black text-slate-400 py-0.5 sm:py-1">
+                                <span key={i} className="text-[9px] sm:text-[10px] font-extrabold text-slate-500">
                                     {d}
                                 </span>
                             ))}
@@ -799,7 +840,7 @@ export default function AvailabilityModal({
                         )}
                     </div>
 
-                    {user ? (
+                    {currentUser ? (
                         <button
                             type="button"
                             onClick={handleSubmit}
@@ -810,15 +851,17 @@ export default function AvailabilityModal({
                             <span className="text-[#add911]">→</span>
                         </button>
                     ) : (
-                        <Link
-                            href="/login"
-                            className="w-full sm:w-auto h-12 px-6 rounded-xl bg-[#0b1c30] hover:bg-[#132c4a] text-white text-sm font-extrabold shadow-md transition-all flex items-center justify-center gap-2 shrink-0"
+                        <button
+                            type="button"
+                            onClick={handleSignInToBook}
+                            className="w-full sm:w-auto h-12 px-6 rounded-xl bg-[#0b1c30] hover:bg-[#132c4a] text-white text-sm font-extrabold shadow-md transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer"
                         >
                             Sign in to book <span className="text-[#add911]">→</span>
-                        </Link>
+                        </button>
                     )}
                 </footer>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

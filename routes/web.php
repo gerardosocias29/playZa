@@ -62,9 +62,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
 // Protected Regular User Routes (Clean Direct Paths: /dashboard, /my-reservations, /profile, /notifications)
 Route::middleware(['auth', 'role:user'])->group(function () {
-    Route::get('/dashboard', function () {
-        return redirect('/');
-    })->name('dashboard');
+    Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/facilities', [UserFacilityController::class, 'index'])->name('facilities');
     Route::get('/facilities/check-availability', [UserFacilityController::class, 'checkAvailability'])->name('facilities.check-availability');
