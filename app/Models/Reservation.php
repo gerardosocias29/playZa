@@ -20,6 +20,9 @@ class Reservation extends Model
         'end_time',
         'duration_hours',
         'status',
+        'organization_or_school',
+        'contact_person',
+        'contact_number',
     ];
 
     /** Last day of the booking; single-day rows fall back to the start date. */

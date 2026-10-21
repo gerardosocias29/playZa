@@ -194,9 +194,14 @@ export default function Reservations({ reservations = [], facilities = [], block
                                                     <h3 className="font-title font-black text-[#0b1c30] text-lg">
                                                         {res.facility?.name || 'Facility'}
                                                     </h3>
-                                                    <p className="text-xs text-slate-700 font-mono font-bold mt-0.5">
-                                                        📅 {res.reservation_date}
-                                                        {res.end_date && res.end_date !== res.reservation_date && ` to ${res.end_date}`}
+                                                    <p className="text-xs text-slate-700 font-mono font-bold mt-0.5 flex items-center gap-1.5">
+                                                        <svg className="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                        <span>
+                                                            {res.reservation_date}
+                                                            {res.end_date && res.end_date !== res.reservation_date && ` to ${res.end_date}`}
+                                                        </span>
                                                     </p>
                                                 </div>
                                                 <span className={`px-3 py-1 rounded-full text-[11px] font-extrabold ${statusInfo.color}`}>
@@ -217,6 +222,28 @@ export default function Reservations({ reservations = [], facilities = [], block
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-slate-500 font-semibold">Event Type:</span>
                                                         <span className="font-bold text-[#0077CC]">{res.event_type || res.custom_event_name}</span>
+                                                    </div>
+                                                )}
+                                                {res.organization_or_school && (
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-slate-500 font-semibold">Organization / School:</span>
+                                                        <span className="font-bold text-indigo-700 flex items-center gap-1.5">
+                                                            <svg className="w-3.5 h-3.5 text-indigo-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                            </svg>
+                                                            <span>{res.organization_or_school}</span>
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {res.contact_person && (
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-slate-500 font-semibold">Point Person:</span>
+                                                        <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                                                            <svg className="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                            </svg>
+                                                            <span>{res.contact_person} {res.contact_number ? `(${res.contact_number})` : ''}</span>
+                                                        </span>
                                                     </div>
                                                 )}
                                             </div>

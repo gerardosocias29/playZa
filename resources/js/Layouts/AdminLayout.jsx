@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { getCurrentUser, logoutUser, getReservations } from '@/mockData';
+import Toast from '@/Components/Toast';
 
 export default function AdminLayout({ children, title }) {
     const { auth } = usePage().props;
@@ -274,6 +275,7 @@ export default function AdminLayout({ children, title }) {
                     {children}
                 </div>
             </div>
+            <Toast />
         </div>
     );
 }

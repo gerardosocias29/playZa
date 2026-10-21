@@ -298,4 +298,59 @@ class UserReservationTest extends TestCase
 
         $response->assertSessionHasErrors(['start_time']);
     }
+
+    public function test_user_can_submit_reservation_with_organization_and_contact_info(): void
+    {
+        $date = date('Y-m-d', strtotime('+3 days'));
+
+        $response = $this->actingAs($this->user)->post(route('reservations.store'), [
+            'facility_id' => $this->facility->id,
+            'reservation_date' => $date,
+            'start_time' => '10:00',
+            'end_time' => '12:00',
+            'duration_hours' => 2,
+            'organization_or_school' => 'Getafe National High School',
+            'contact_person' => 'Coach Santos',
+            'contact_number' => '09171234567',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('reservations', [
+            'user_id' => $this->user->id,
+            'facility_id' => $this->facility->id,
+            'organization_or_school' => 'Getafe National High School',
+            'contact_person' => 'Coach Santos',
+            'contact_number' => '09171234567',
+        ]);
+    }
+
+    public function test_reservation_rejected_if_outside_facility_operating_hours(): void
+    {
+        $this->facility->update([
+            'opening_time' => '08:00',
+            'closing_time' => '17:00',
+        ]);
+
+        $date = date('Y-m-d', strtotime('+3 days'));
+
+        // Before opening time (07:00 < 08:00)
+        $responseEarly = $this->actingAs($this->user)->post(route('reservations.store'), [
+            'facility_id' => $this->facility->id,
+            'reservation_date' => $date,
+            'start_time' => '07:00',
+            'end_time' => '09:00',
+            'duration_hours' => 2,
+        ]);
+        $responseEarly->assertSessionHasErrors(['start_time']);
+
+        // After closing time (18:00 > 17:00)
+        $responseLate = $this->actingAs($this->user)->post(route('reservations.store'), [
+            'facility_id' => $this->facility->id,
+            'reservation_date' => $date,
+            'start_time' => '16:00',
+            'end_time' => '18:00',
+            'duration_hours' => 2,
+        ]);
+        $responseLate->assertSessionHasErrors(['end_time']);
+    }
 }

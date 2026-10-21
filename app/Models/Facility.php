@@ -23,6 +23,8 @@ class Facility extends Model
         'allow_custom_events',
         'booking_group',
         'booking_capacity',
+        'opening_time',
+        'closing_time',
     ];
 
     protected $casts = [

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import Toast from '@/Components/Toast';
 
 export default function UserLayout({ children, title, onOpenAvailabilityModal }) {
     const { auth, flash = {} } = usePage().props;
@@ -334,6 +335,7 @@ export default function UserLayout({ children, title, onOpenAvailabilityModal })
                     {children}
                 </main>
             </div>
+            <Toast />
         </div>
     );
 }

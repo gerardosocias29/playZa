@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
+import Toast from '@/Components/Toast';
 
 export default function PublicLayout({ children, title, activeSection = '' }) {
     const { auth } = usePage().props;
@@ -230,6 +231,8 @@ export default function PublicLayout({ children, title, activeSection = '' }) {
                     </div>
                 </div>
             </footer>
+
+            <Toast />
         </div>
     );
 }

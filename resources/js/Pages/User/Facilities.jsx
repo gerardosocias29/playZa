@@ -129,10 +129,10 @@ export default function Facilities({ facilities = [], reservations = [], schedul
                                     <span>Max {fac.max_hours_per_booking || 4} hrs/session</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 font-medium">
-                                    <svg className="h-3.5 w-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <svg className="h-3.5 w-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <span>{fac.location || 'Getafe Center'}</span>
+                                    <span>{fac.opening_time || '08:00'} - {fac.closing_time || '22:00'}</span>
                                 </div>
                             </div>
 

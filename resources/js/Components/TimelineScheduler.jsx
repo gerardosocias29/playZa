@@ -176,7 +176,11 @@ export default function TimelineScheduler({
             <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-5 rounded-3xl text-white shadow-xl">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                        <span className="p-1.5 bg-indigo-500/20 rounded-lg text-indigo-400">📅</span>
+                        <span className="p-1.5 bg-indigo-500/20 rounded-lg text-indigo-400">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </span>
                         <span className="text-xs font-black uppercase tracking-wider">
                             Hold & Drag Time Slot to Date Target
                         </span>
@@ -217,7 +221,7 @@ export default function TimelineScheduler({
             <div className="bg-[#0b1c30]/5 p-2 rounded-2xl border border-slate-200">
                 <div className="text-center mb-2">
                     <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#0077CC]">
-                        🎨 Time Selector Layout Modes
+                        Time Selector Layout Modes
                     </span>
                 </div>
 
@@ -534,10 +538,10 @@ export default function TimelineScheduler({
                                             </span>
                                         )}
                                         {status === 'reserved' && (
-                                            <span className="text-[10px] uppercase font-bold tracking-wider text-white">🔒 Reserved</span>
+                                            <span className="text-[10px] uppercase font-bold tracking-wider text-white">Reserved</span>
                                         )}
                                         {status === 'maintenance' && (
-                                            <span className="text-[10px] uppercase font-bold tracking-wider text-white">🔧 Closed</span>
+                                            <span className="text-[10px] uppercase font-bold tracking-wider text-white">Closed</span>
                                         )}
                                     </div>
                                 </div>

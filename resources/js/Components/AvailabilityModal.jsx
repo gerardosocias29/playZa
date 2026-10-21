@@ -16,6 +16,7 @@ import {
     selectionExtend,
     selectionFinish,
 } from '@/lib/availability';
+import { formatSlotLabel } from '@/lib/timeSlots';
 
 const MONTHS = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -55,12 +56,15 @@ export default function AvailabilityModal({
     const isRangeEnabled = false;
     const [facilityId, setFacilityId] = useState(initialFacilityId ?? facility?.id ?? null);
     const [startHour, setStartHour] = useState(8);
-    const [endAbsHour, setEndAbsHour] = useState(17); // absolute hours from start-day midnight
+    const [endAbsHour, setEndAbsHour] = useState(9); // absolute hours from start-day midnight
     const [viewMonth, setViewMonth] = useState(() => new Date());
     const [selection, setSelection] = useState(() => newSelection(today));
     const { startDate, endDate } = selection;
     const [eventType, setEventType] = useState(EVENT_TYPES[1]);
     const [customEventName, setCustomEventName] = useState('');
+    const [organizationOrSchool, setOrganizationOrSchool] = useState('');
+    const [contactPerson, setContactPerson] = useState('');
+    const [contactNumber, setContactNumber] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [mounted, setMounted] = useState(false);
 
@@ -69,12 +73,34 @@ export default function AvailabilityModal({
     }, []);
 
     const timelineRef = React.useRef(null);
+    const wasOpenRef = React.useRef(false);
     const [dragMode, setDragMode] = useState(null); // null | 'move' | 'left' | 'right'
     const [dragOffset, setDragOffset] = useState(0);
 
     const facilityList = facilities.length > 0 ? facilities : facility ? [facility] : [];
     const activeFacility =
         facilityList.find((f) => String(f.id) === String(facilityId)) || facility || facilityList[0] || null;
+
+    const facilityOpenH = parseInt((activeFacility?.opening_time || '08:00').split(':')[0], 10);
+    const facilityCloseH = parseInt((activeFacility?.closing_time || '22:00').split(':')[0], 10);
+
+    const handleFacilityChange = (newId) => {
+        setFacilityId(newId);
+        const targetFac = facilityList.find(f => String(f.id) === String(newId));
+        if (targetFac) {
+            const nextOpen = parseInt((targetFac.opening_time || '08:00').split(':')[0], 10);
+            const nextClose = parseInt((targetFac.closing_time || '22:00').split(':')[0], 10);
+            const minStart = startDate === today ? Math.max(nextOpen, currentHour + 1) : nextOpen;
+            const newStart = Math.min(Math.max(startHour, minStart), nextClose - 1);
+            const maxDur = targetFac.max_hours || 2;
+            const newEnd = Math.min(newStart + maxDur, nextClose);
+            setStartHour(newStart);
+            setEndAbsHour(newEnd);
+            if (targetFac.event_options && targetFac.event_options.length > 0) {
+                setEventType(targetFac.event_options[0]);
+            }
+        }
+    };
 
     /* ---------- busy data for the active facility ---------- */
 
@@ -125,45 +151,59 @@ export default function AvailabilityModal({
     const facilityMaxHours = activeFacility?.max_hours || null;
 
     useEffect(() => {
-        if (!isOpen) return;
-
-        if (initialBookingData) {
-            if (initialBookingData.facilityId) setFacilityId(initialBookingData.facilityId);
-            if (initialBookingData.date) {
-                setSelection(newSelection(initialBookingData.date));
-                const parts = initialBookingData.date.split('-');
-                if (parts.length === 3) {
-                    setViewMonth(new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1));
-                }
-            }
-            if (initialBookingData.startHour !== undefined) setStartHour(initialBookingData.startHour);
-            if (initialBookingData.endAbsHour !== undefined) setEndAbsHour(initialBookingData.endAbsHour);
-            if (initialBookingData.eventType) setEventType(initialBookingData.eventType);
-            if (initialBookingData.customEventName) setCustomEventName(initialBookingData.customEventName);
+        if (!isOpen) {
+            wasOpenRef.current = false;
             return;
         }
 
-        const initial = currentHour >= 22 ? addDays(today, 1) : today;
-        const defaultDur = facilityMaxHours ? Math.min(2, facilityMaxHours) : 2;
-        const start = initial === today ? Math.min(currentHour + 1, 22) : 8;
-        setMode('single');
-        setFacilityId(initialFacilityId ?? facility?.id ?? facilityList[0]?.id ?? null);
-        setSelection(newSelection(initial));
-        setStartHour(start);
-        setEndAbsHour(initial === today ? Math.min(start + defaultDur, 24) : start + defaultDur);
-        setViewMonth(new Date());
-        setCustomEventName('');
-    }, [isOpen, facility?.id, initialFacilityId, initialBookingData, activeFacility?.max_hours]);
+        // Only run full reset when modal is opened freshly, NOT when user changes facility dropdown!
+        if (!wasOpenRef.current) {
+            wasOpenRef.current = true;
+
+            if (initialBookingData) {
+                if (initialBookingData.facilityId) setFacilityId(initialBookingData.facilityId);
+                if (initialBookingData.date) {
+                    setSelection(newSelection(initialBookingData.date));
+                    const parts = initialBookingData.date.split('-');
+                    if (parts.length === 3) {
+                        setViewMonth(new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1));
+                    }
+                }
+                if (initialBookingData.startHour !== undefined) setStartHour(initialBookingData.startHour);
+                if (initialBookingData.endAbsHour !== undefined) setEndAbsHour(initialBookingData.endAbsHour);
+                if (initialBookingData.eventType) setEventType(initialBookingData.eventType);
+                if (initialBookingData.customEventName) setCustomEventName(initialBookingData.customEventName);
+                if (initialBookingData.organization_or_school) setOrganizationOrSchool(initialBookingData.organization_or_school);
+                if (initialBookingData.contact_person) setContactPerson(initialBookingData.contact_person);
+                if (initialBookingData.contact_number) setContactNumber(initialBookingData.contact_number);
+                return;
+            }
+
+            const initial = currentHour >= (facilityCloseH - 1) ? addDays(today, 1) : today;
+            const defaultDur = facilityMaxHours ? Math.min(2, facilityMaxHours) : 2;
+            const start = initial === today ? Math.min(Math.max(currentHour + 1, facilityOpenH), facilityCloseH - 1) : facilityOpenH;
+            setMode('single');
+            setFacilityId(initialFacilityId ?? facility?.id ?? facilityList[0]?.id ?? null);
+            setSelection(newSelection(initial));
+            setStartHour(start);
+            setEndAbsHour(Math.min(start + defaultDur, facilityCloseH));
+            setViewMonth(new Date());
+            setCustomEventName('');
+            setOrganizationOrSchool('');
+            setContactPerson('');
+            setContactNumber('');
+        }
+    }, [isOpen, initialFacilityId, facility?.id, initialBookingData]);
 
     // Coming back to today from a future date can leave the start on an hour
     // that has already passed — nudge it forward so the select stays in sync.
     useEffect(() => {
         if (startDate !== today || startHour > currentHour) return;
-        const next = Math.min(currentHour + 1, 23);
+        const next = Math.min(Math.max(currentHour + 1, facilityOpenH), facilityCloseH - 1);
         const defaultDur = facilityMaxHours ? Math.min(2, facilityMaxHours) : 2;
         setStartHour(next);
-        setEndAbsHour((prev) => (mode === 'overnight' ? prev : Math.min(next + defaultDur, 24)));
-    }, [startDate, startHour, currentHour, today, mode, activeFacility?.max_hours]);
+        setEndAbsHour(Math.min(next + defaultDur, facilityCloseH));
+    }, [startDate, today, currentHour, facilityOpenH, facilityCloseH, facilityMaxHours]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -224,6 +264,9 @@ export default function AvailabilityModal({
                 event_type: activeFacility.requires_event_type ? eventType : null,
                 custom_event_name:
                     activeFacility.requires_event_type && eventType === 'Others' ? customEventName.trim() : null,
+                organization_or_school: organizationOrSchool.trim() || null,
+                contact_person: contactPerson.trim() || null,
+                contact_number: contactNumber.trim() || null,
             },
             {
                 preserveScroll: true,
@@ -256,21 +299,21 @@ export default function AvailabilityModal({
 
     /* ---------- time options ---------- */
 
-    const startOptions = Array.from({ length: 24 }, (_, h) => h).filter(
+    const startOptions = Array.from({ length: Math.max(1, facilityCloseH - facilityOpenH) }, (_, i) => facilityOpenH + i).filter(
         (h) => !(startDate === today && h <= currentHour)
     );
 
-    const maxAllowedHours = facilityMaxHours || 24;
-    const maxEndLength = Math.min(24 - startHour, maxAllowedHours);
+    const maxAllowedHours = facilityMaxHours || (facilityCloseH - facilityOpenH);
+    const maxEndHourVal = Math.min(facilityCloseH, startHour + maxAllowedHours);
 
-    const endOptions = Array.from({ length: maxEndLength }, (_, i) => startHour + 1 + i);
+    const endOptions = Array.from({ length: Math.max(0, maxEndHourVal - startHour) }, (_, i) => startHour + 1 + i);
 
-    const timelineFrom = 0;
-    const timelineTo = 24;
-    const timelineSpan = 24;
-    const ticks = [0, 6, 12, 18, 24];
+    const timelineFrom = facilityOpenH;
+    const timelineTo = facilityCloseH;
+    const timelineSpan = Math.max(1, timelineTo - timelineFrom);
+    const ticks = [facilityOpenH, Math.round((facilityOpenH + facilityCloseH) / 2), facilityCloseH];
 
-    const minStartHour = startDate === today ? Math.min(currentHour + 1, 23) : timelineFrom;
+    const minStartHour = startDate === today ? Math.min(Math.max(currentHour + 1, facilityOpenH), facilityCloseH - 1) : timelineFrom;
     const maxEndHour = timelineTo;
 
     useEffect(() => {
@@ -412,8 +455,8 @@ export default function AvailabilityModal({
                             <div className="flex items-center gap-1.5 flex-1 sm:flex-none">
                                 <label className="text-[10px] sm:text-xs font-bold text-slate-500 hidden sm:inline">Facility:</label>
                                 <select
-                                    value={activeFacility.id}
-                                    onChange={(e) => setFacilityId(e.target.value)}
+                                    value={facilityId || activeFacility.id}
+                                    onChange={(e) => handleFacilityChange(e.target.value)}
                                     className="w-full sm:w-auto px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-[10px] sm:text-xs font-bold text-[#0b1c30] shadow-xs focus:ring-2 focus:ring-[#0077CC]"
                                 >
                                     {facilityList.map((f) => (
@@ -578,17 +621,17 @@ export default function AvailabilityModal({
                         <div className="space-y-3">
                             <div>
                                 <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
-                                    Start time
+                                    Start time (Opens at {hourLabel(facilityOpenH)})
                                 </label>
                                 <select
                                     value={startHour}
                                     onChange={(e) => {
                                         const next = Number(e.target.value);
                                         setStartHour(next);
-                                        const maxAllowed = facilityMaxHours ? next + facilityMaxHours : 24;
+                                        const maxAllowed = facilityMaxHours ? Math.min(facilityCloseH, next + facilityMaxHours) : facilityCloseH;
                                         if (mode !== 'overnight') {
                                             if (endAbsHour <= next) {
-                                                setEndAbsHour(Math.min(next + (facilityMaxHours ? Math.min(2, facilityMaxHours) : 2), maxAllowed));
+                                                setEndAbsHour(Math.min(next + 1, maxAllowed));
                                             } else if (endAbsHour > maxAllowed) {
                                                 setEndAbsHour(maxAllowed);
                                             }
@@ -610,7 +653,7 @@ export default function AvailabilityModal({
 
                             <div>
                                 <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
-                                    End time
+                                    End time / Slot (Closes at {hourLabel(facilityCloseH)})
                                 </label>
                                 <select
                                     value={endAbsHour}
@@ -619,7 +662,7 @@ export default function AvailabilityModal({
                                 >
                                     {endOptions.map((h) => (
                                         <option key={h} value={h}>
-                                            {hourLabel(h, h > 24)}
+                                            {formatSlotLabel(startHour, h)} ({h - startHour} hr{h - startHour > 1 ? 's' : ''})
                                         </option>
                                     ))}
                                 </select>
@@ -749,7 +792,9 @@ export default function AvailabilityModal({
 
                         {conflict && (
                             <div className="flex items-start gap-2 mt-4 px-3 py-2.5 rounded-xl border border-[#F0B872] bg-amber-50 text-xs font-bold text-amber-700">
-                                <span>⚠</span>
+                                <svg className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
                                 <span>
                                     {prettyDate(conflict.date)} overlaps a{' '}
                                     {conflict.type === 'blocked' ? 'blocked' : 'reserved'} slot — adjust the time or pick
@@ -820,6 +865,57 @@ export default function AvailabilityModal({
                                 )}
                             </div>
                         )}
+
+                        {/* Organization / School and Contact Fields */}
+                        <div className="mt-6 p-4 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-black uppercase tracking-wider text-[#0b1c30] flex items-center gap-1.5">
+                                    <svg className="w-3.5 h-3.5 text-indigo-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                    Organization & Contact Details
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-semibold">(For Events, Intrams & Booking Point Person)</span>
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                                    Organization / School Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={organizationOrSchool}
+                                    onChange={(e) => setOrganizationOrSchool(e.target.value)}
+                                    placeholder="e.g. Getafe National High School / Barangay Youth"
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-[#0b1c30] placeholder:font-normal placeholder:text-slate-400 focus:border-[#0077CC] focus:ring-[#0077CC]"
+                                />
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                                        Contact Person
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={contactPerson}
+                                        onChange={(e) => setContactPerson(e.target.value)}
+                                        placeholder="e.g. Juan Dela Cruz"
+                                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-[#0b1c30] placeholder:font-normal placeholder:text-slate-400 focus:border-[#0077CC] focus:ring-[#0077CC]"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                                        Contact Number
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        value={contactNumber}
+                                        onChange={(e) => setContactNumber(e.target.value)}
+                                        placeholder="e.g. 0912-345-6789"
+                                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-[#0b1c30] placeholder:font-normal placeholder:text-slate-400 focus:border-[#0077CC] focus:ring-[#0077CC]"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

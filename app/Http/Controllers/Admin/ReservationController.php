@@ -36,7 +36,18 @@ class ReservationController extends Controller
             'duration_hours' => 'required|integer|min:1',
             'event_type' => 'nullable|string',
             'custom_event_name' => 'nullable|string',
+            'organization_or_school' => 'nullable|string|max:255',
+            'contact_person' => 'nullable|string|max:255',
+            'contact_number' => 'nullable|string|max:50',
         ]);
+
+        $facility = \App\Models\Facility::findOrFail($validated['facility_id']);
+        if ($facility->opening_time && $validated['start_time'] < $facility->opening_time) {
+            return back()->withErrors(['start_time' => "Start time cannot be earlier than facility opening time ({$facility->opening_time})."]);
+        }
+        if ($facility->closing_time && $validated['end_time'] > $facility->closing_time && $validated['end_time'] !== '00:00') {
+            return back()->withErrors(['end_time' => "End time cannot be later than facility closing time ({$facility->closing_time})."]);
+        }
 
         $reservation = Reservation::create([
             'user_id' => auth()->id(),
@@ -48,6 +59,9 @@ class ReservationController extends Controller
             'duration_hours' => $validated['duration_hours'],
             'event_type' => $validated['event_type'] ?? 'Tournament',
             'custom_event_name' => $validated['custom_event_name'] ?? null,
+            'organization_or_school' => $validated['organization_or_school'] ?? null,
+            'contact_person' => $validated['contact_person'] ?? null,
+            'contact_number' => $validated['contact_number'] ?? null,
             'status' => 'approved',
         ]);
 
