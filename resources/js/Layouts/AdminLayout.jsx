@@ -10,14 +10,29 @@ export default function AdminLayout({ children, title }) {
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [recentAlerts, setRecentAlerts] = useState([]);
+    const [seenAlertIds, setSeenAlertIds] = useState(() => {
+        try {
+            return JSON.parse(sessionStorage.getItem('playza_admin_seen_alerts') || '[]');
+        } catch (e) {
+            return [];
+        }
+    });
 
     const notificationRef = useRef(null);
     const profileRef = useRef(null);
 
     useEffect(() => {
-        const reservations = getReservations().filter(r => r.status === 'pending');
-        setRecentAlerts(reservations.slice(0, 3));
+        let alerts = [];
+        if (auth?.adminPendingReservations !== undefined) {
+            alerts = auth.adminPendingReservations;
+        } else {
+            const reservations = getReservations().filter(r => r.status === 'pending');
+            alerts = reservations.slice(0, 5);
+        }
+        setRecentAlerts(alerts);
+    }, [auth?.adminPendingReservations]);
 
+    useEffect(() => {
         const handleClickOutside = (event) => {
             if (notificationRef.current && !notificationRef.current.contains(event.target)) {
                 setIsNotificationOpen(false);
@@ -29,6 +44,22 @@ export default function AdminLayout({ children, title }) {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    const handleToggleNotifications = () => {
+        const nextState = !isNotificationOpen;
+        setIsNotificationOpen(nextState);
+
+        // When opened, mark current alerts as seen so the red badge count is dismissed
+        if (nextState && recentAlerts.length > 0) {
+            const newSeen = Array.from(new Set([...seenAlertIds, ...recentAlerts.map(a => a.id)]));
+            setSeenAlertIds(newSeen);
+            try {
+                sessionStorage.setItem('playza_admin_seen_alerts', JSON.stringify(newSeen));
+            } catch (e) {}
+        }
+    };
+
+    const unreadAlerts = recentAlerts.filter(alert => !seenAlertIds.includes(alert.id));
 
     const handleLogout = (e) => {
         e.preventDefault();
@@ -173,15 +204,16 @@ export default function AdminLayout({ children, title }) {
                         {/* Notification Bell Dropdown */}
                         <div className="relative" ref={notificationRef}>
                             <button
-                                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                                className="p-2 text-slate-400 hover:text-indigo-600 rounded-full hover:bg-slate-100 relative focus:outline-none"
+                                onClick={handleToggleNotifications}
+                                className="p-2 text-slate-400 hover:text-indigo-600 rounded-full hover:bg-slate-100 relative focus:outline-none transition-colors"
+                                aria-label="Notifications"
                             >
                                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                                 </svg>
-                                {recentAlerts.length > 0 && (
+                                {unreadAlerts.length > 0 && (
                                     <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-rose-500 text-white font-extrabold text-[8px] flex items-center justify-center border border-white">
-                                        {recentAlerts.length}
+                                        {unreadAlerts.length}
                                     </span>
                                 )}
                             </button>
@@ -190,7 +222,11 @@ export default function AdminLayout({ children, title }) {
                                 <div className="absolute right-0 mt-3.5 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-3">
                                     <div className="px-4 pb-2 border-b border-slate-100 flex justify-between items-center">
                                         <span className="text-xs font-bold text-slate-900">Notifications</span>
-                                        <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-full">{recentAlerts.length} Action Required</span>
+                                        {recentAlerts.length > 0 ? (
+                                            <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-full">{recentAlerts.length} Action Required</span>
+                                        ) : (
+                                            <span className="text-[10px] text-slate-400 font-medium">All caught up</span>
+                                        )}
                                     </div>
                                     <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto">
                                         {recentAlerts.length > 0 ? (
@@ -271,7 +307,6 @@ export default function AdminLayout({ children, title }) {
 
                 {/* Content Container */}
                 <div className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto">
-                    <h2 className="text-xl font-title font-black text-slate-900 mb-6 tracking-tight hidden md:block">{title}</h2>
                     {children}
                 </div>
             </div>

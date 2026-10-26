@@ -53,6 +53,12 @@ export default function Facilities({ facilities = [], reservations = [], schedul
         >
             <Head title="Facility Directory - PlayZa" />
 
+            {/* Page Header */}
+            <div>
+                <h2 className="text-xl font-title font-black text-[#0b1c30]">Sports & Event Facilities Directory</h2>
+                <p className="text-xs text-slate-500 font-medium mt-1">Browse court amenities, operational hours, and real-time availability.</p>
+            </div>
+
             {/* Filter & Search Bar */}
             <div className="glass-panel p-6 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-4">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

@@ -11,14 +11,8 @@ export default function TimelineScheduler({
     // 24-hour slots: 01:00 (1) to 23:00 (23), ending at 00:00 / 12 Midnight (24)
     const hours = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
 
-    // Variant tab switcher state (1, 2, 3, 4, 5)
-    const [activeVariant, setActiveVariant] = useState(1);
-
     // Range selection state { start: number, end: number } e.g. { start: 10, end: 14 }
     const [selectedRange, setSelectedRange] = useState(null);
-
-    // Variant 3 state
-    const [selectedDuration, setSelectedDuration] = useState(2); // default 2 hours
 
     // Dragging state
     const [isDragging, setIsDragging] = useState(false);
@@ -182,11 +176,11 @@ export default function TimelineScheduler({
                             </svg>
                         </span>
                         <span className="text-xs font-black uppercase tracking-wider">
-                            Hold & Drag Time Slot to Date Target
+                            Select Date
                         </span>
                     </div>
                     <span className="text-[11px] text-slate-400 font-medium">
-                        Drag any open slot below onto a date pill to switch date & book!
+                        Click any date pill below to view availability and book
                     </span>
                 </div>
 
@@ -217,75 +211,7 @@ export default function TimelineScheduler({
                 </div>
             </div>
 
-            {/* Interactive Variant Switcher Toolbar */}
-            <div className="bg-[#0b1c30]/5 p-2 rounded-2xl border border-slate-200">
-                <div className="text-center mb-2">
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#0077CC]">
-                        Time Selector Layout Modes
-                    </span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                    <button
-                        type="button"
-                        onClick={() => setActiveVariant(1)}
-                        className={`px-3 py-2 rounded-xl text-xs font-black transition-all ${
-                            activeVariant === 1 
-                                ? 'bg-[#0b1c30] text-white shadow-md' 
-                                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                        }`}
-                    >
-                        1. From & To
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setActiveVariant(2)}
-                        className={`px-3 py-2 rounded-xl text-xs font-black transition-all ${
-                            activeVariant === 2 
-                                ? 'bg-[#0b1c30] text-white shadow-md' 
-                                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                        }`}
-                    >
-                        2. 24h Ribbon
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setActiveVariant(3)}
-                        className={`px-3 py-2 rounded-xl text-xs font-black transition-all ${
-                            activeVariant === 3 
-                                ? 'bg-[#0b1c30] text-white shadow-md' 
-                                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                        }`}
-                    >
-                        3. Presets
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setActiveVariant(4)}
-                        className={`px-3 py-2 rounded-xl text-xs font-black transition-all ${
-                            activeVariant === 4 
-                                ? 'bg-[#0b1c30] text-white shadow-md' 
-                                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                        }`}
-                    >
-                        4. Day Planner
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setActiveVariant(5)}
-                        className={`px-3 py-2 rounded-xl text-xs font-black transition-all col-span-2 sm:col-span-1 ${
-                            activeVariant === 5 
-                                ? 'bg-[#0b1c30] text-white shadow-md' 
-                                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                        }`}
-                    >
-                        5. Range Slider
-                    </button>
-                </div>
-            </div>
-
-            {/* VARIANT 1: "FROM & TO" DROPDOWN RANGE BUILDER */}
-            {activeVariant === 1 && (
+            {/* "From & To" Time Selector */}
                 <div className="space-y-6 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div>
@@ -356,255 +282,7 @@ export default function TimelineScheduler({
                         </div>
                     </div>
 
-                    {/* Interactive 24h Visual Bar */}
-                    <div>
-                        <span className="block text-xs font-extrabold text-[#0b1c30] mb-2">
-                            24-Hour Visual Schedule Grid (Hold & Drag Slots to Date Target)
-                        </span>
-                        <div className="grid grid-cols-12 sm:grid-cols-23 gap-1 p-2 bg-slate-100 rounded-xl border border-slate-200 overflow-x-auto">
-                            {hours.map((h) => {
-                                const status = getBlockStatus(h);
-                                const isSelected = selectedRange && h >= selectedRange.start && h <= selectedRange.end;
-                                
-                                let barBg = 'bg-white';
-                                if (isSelected) barBg = 'bg-[#add911] text-[#0b1c30] font-bold';
-                                else if (status === 'reserved') barBg = 'bg-[#f87171] text-white cursor-not-allowed';
-                                else if (status === 'maintenance') barBg = 'bg-[#8fa1b2] text-white cursor-not-allowed';
-
-                                return (
-                                    <button
-                                        key={h}
-                                        type="button"
-                                        draggable={status === 'available'}
-                                        onDragStart={(e) => handleDragStart(e, h)}
-                                        disabled={status !== 'available'}
-                                        onClick={() => handleBlockClick(h)}
-                                        className={`h-10 rounded flex flex-col items-center justify-center text-[10px] font-mono transition-all min-w-[28px] cursor-grab active:cursor-grabbing ${barBg}`}
-                                        title={`${format24Time(h)} - ${format24Time(h+1)} (Hold to drag to date)`}
-                                    >
-                                        <span>{h.toString().padStart(2, '0')}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
                     </div>
-                </div>
-            )}
-
-            {/* VARIANT 2: HORIZONTAL 24H TIME RIBBON */}
-            {activeVariant === 2 && (
-                <div className="space-y-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                    <span className="block text-xs font-extrabold text-[#0b1c30] uppercase tracking-wider">
-                        Horizontal 24h Time Ribbon (Hold & Drag to Date)
-                    </span>
-
-                    <div className="overflow-x-auto pb-4 pt-1 select-none">
-                        <div className="min-w-[980px] grid grid-cols-23 gap-1.5">
-                            {hours.map((h) => {
-                                const status = getBlockStatus(h);
-                                const isSelected = selectedRange && h >= selectedRange.start && h <= selectedRange.end;
-
-                                let ribbonBg = 'bg-white border-slate-300 text-[#0b1c30] hover:border-[#0077CC] shadow-2xs';
-                                if (isSelected) ribbonBg = 'bg-[#add911] border-[#add911] text-[#0b1c30] font-black shadow-md';
-                                else if (status === 'reserved') ribbonBg = 'bg-[#f87171] border-rose-400 text-white cursor-not-allowed';
-                                else if (status === 'maintenance') ribbonBg = 'bg-[#8fa1b2] border-slate-400 text-white cursor-not-allowed';
-
-                                return (
-                                    <button
-                                        key={h}
-                                        type="button"
-                                        draggable={status === 'available'}
-                                        onDragStart={(e) => handleDragStart(e, h)}
-                                        disabled={status !== 'available'}
-                                        onClick={() => handleBlockClick(h)}
-                                        className={`h-20 rounded-xl border-2 flex flex-col justify-between p-2 text-center transition-all cursor-grab active:cursor-grabbing ${ribbonBg}`}
-                                    >
-                                        <span className="text-xs font-mono font-black">{format24Time(h)}</span>
-                                        <span className="text-[9px] font-extrabold uppercase">
-                                            {isSelected ? 'SELECTED' : status === 'reserved' ? 'LOCKED' : status === 'maintenance' ? 'CLOSED' : 'OPEN'}
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* VARIANT 3: QUICK DURATION PRESETS */}
-            {activeVariant === 3 && (
-                <div className="space-y-6 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                    <div>
-                        <span className="block text-xs font-extrabold text-[#0b1c30] mb-3 uppercase tracking-wider">
-                            Step 1: Choose Booking Duration Preset
-                        </span>
-                        <div className="flex flex-wrap gap-3">
-                            {[1, 2, 3, 4, 5].map((dur) => (
-                                <button
-                                    key={dur}
-                                    type="button"
-                                    onClick={() => {
-                                        setSelectedDuration(dur);
-                                        if (selectedRange) {
-                                            const endH = selectedRange.start + dur - 1;
-                                            setRangeIfValid(selectedRange.start, endH);
-                                        }
-                                    }}
-                                    className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all ${
-                                        selectedDuration === dur
-                                            ? 'bg-[#0077CC] text-white shadow-md scale-[1.02]'
-                                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                                    }`}
-                                >
-                                    {dur} {dur === 1 ? 'Hour' : 'Hours'}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div>
-                        <span className="block text-xs font-extrabold text-[#0b1c30] mb-3 uppercase tracking-wider">
-                            Step 2: Tap Start Hour ({selectedDuration} {selectedDuration === 1 ? 'Hour' : 'Hours'} Range)
-                        </span>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 max-h-96 overflow-y-auto p-1">
-                            {hours.map((h) => {
-                                const endH = h + selectedDuration - 1;
-                                const isEndValid = endH <= 23;
-
-                                let isAvailableRange = isEndValid;
-                                if (isEndValid) {
-                                    for (let v = h; v <= endH; v++) {
-                                        if (getBlockStatus(v) !== 'available') {
-                                            isAvailableRange = false;
-                                            break;
-                                        }
-                                    }
-                                }
-
-                                const isSelected = selectedRange && selectedRange.start === h && selectedRange.end === endH;
-
-                                return (
-                                    <button
-                                        key={h}
-                                        type="button"
-                                        disabled={!isAvailableRange}
-                                        onClick={() => setRangeIfValid(h, endH)}
-                                        className={`p-3 rounded-xl border text-center transition-all ${
-                                            isSelected 
-                                                ? 'bg-[#add911] border-[#add911] text-[#0b1c30] font-black shadow-md'
-                                                : isAvailableRange 
-                                                ? 'bg-white hover:bg-slate-50 border-slate-200 text-[#0b1c30] font-bold'
-                                                : 'bg-slate-100 border-slate-200 text-slate-400 opacity-50 cursor-not-allowed'
-                                        }`}
-                                    >
-                                        <span className="block text-xs font-mono font-bold">{format24Time(h)}</span>
-                                        <span className="text-[10px] text-slate-500 block">to {format24Time(endH + 1)}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* VARIANT 4: DAY PLANNER */}
-            {activeVariant === 4 && (
-                <div className="max-w-xl mx-auto border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white select-none max-h-[500px] overflow-y-auto">
-                    <div className="divide-y divide-slate-100">
-                        {hours.map((h) => {
-                            const status = getBlockStatus(h);
-                            const isSelected = selectedRange && h >= selectedRange.start && h <= selectedRange.end;
-
-                            let rowBgClass = 'bg-white hover:bg-slate-50 cursor-pointer';
-                            if (isSelected) rowBgClass = 'bg-[#add911] text-[#0b1c30] font-black cursor-pointer';
-                            else if (status === 'maintenance') rowBgClass = 'bg-[#8fa1b2] text-white cursor-not-allowed';
-                            else if (status === 'reserved') rowBgClass = 'bg-[#f87171] text-white cursor-not-allowed';
-
-                            return (
-                                <div key={h} className="flex items-center h-11 border-b border-slate-100 last:border-b-0">
-                                    <div className="w-28 sm:w-32 px-4 flex items-center justify-center shrink-0 border-r border-slate-100 bg-slate-50/50 h-full">
-                                        <span className="text-xs font-black text-[#0b1c30] bg-white px-2.5 py-1 rounded-md border border-slate-200/80 font-mono">
-                                            {format24Time(h)}
-                                        </span>
-                                    </div>
-
-                                    <div 
-                                        onClick={() => handleBlockClick(h)}
-                                        className={`flex-1 h-full flex items-center px-4 transition-all duration-150 border-l border-white/20 ${rowBgClass}`}
-                                    >
-                                        {isSelected && (
-                                            <span className="text-[10px] uppercase font-black tracking-wider text-[#0b1c30]">
-                                                Selected ({format24Time(h)} - {format24Time(h + 1)})
-                                            </span>
-                                        )}
-                                        {status === 'reserved' && (
-                                            <span className="text-[10px] uppercase font-bold tracking-wider text-white">Reserved</span>
-                                        )}
-                                        {status === 'maintenance' && (
-                                            <span className="text-[10px] uppercase font-bold tracking-wider text-white">Closed</span>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
-            {/* VARIANT 5: DUAL RANGE SLIDER */}
-            {activeVariant === 5 && (
-                <div className="space-y-6 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm max-w-xl mx-auto">
-                    <span className="block text-xs font-extrabold text-[#0b1c30] uppercase tracking-wider">
-                        Dual Range Slider (01:00 to 00:00 Midnight)
-                    </span>
-
-                    <div className="space-y-4">
-                        <div>
-                            <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
-                                <span>Start Hour:</span>
-                                <span className="font-mono text-[#0077CC] font-black">
-                                    {selectedRange ? format24Time(selectedRange.start) : '01:00'}
-                                </span>
-                            </div>
-                            <input
-                                type="range"
-                                min="1"
-                                max="23"
-                                value={selectedRange ? selectedRange.start : 1}
-                                onChange={(e) => {
-                                    const startH = parseInt(e.target.value);
-                                    const endH = selectedRange && selectedRange.end >= startH ? selectedRange.end : startH;
-                                    setRangeIfValid(startH, endH);
-                                }}
-                                className="w-full accent-[#0077CC] cursor-pointer"
-                            />
-                        </div>
-
-                        <div>
-                            <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
-                                <span>End Hour:</span>
-                                <span className="font-mono text-[#0077CC] font-black">
-                                    {selectedRange ? format24Time(selectedRange.end + 1) : '02:00'}
-                                </span>
-                            </div>
-                            <input
-                                type="range"
-                                min="2"
-                                max="24"
-                                value={selectedRange ? (selectedRange.end + 1) : 2}
-                                onChange={(e) => {
-                                    const endVal = parseInt(e.target.value);
-                                    const startH = selectedRange ? selectedRange.start : 1;
-                                    if (endVal > startH) {
-                                        setRangeIfValid(startH, endVal - 1);
-                                    }
-                                }}
-                                className="w-full accent-[#0077CC] cursor-pointer"
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Booking Summary Card */}
             <div className="bg-white rounded-3xl border border-slate-200 shadow-xl p-6 sm:p-8 max-w-xl mx-auto">

@@ -18,10 +18,12 @@ class ReservationController extends Controller
             ->latest()
             ->get();
         $facilities = \App\Models\Facility::where('active', true)->get();
+        $schedules = \App\Models\Schedule::where('status', '!=', 'available')->get();
 
         return Inertia::render('Admin/Reservations', [
             'reservations' => $reservations,
             'facilities' => $facilities,
+            'schedules' => $schedules,
         ]);
     }
 

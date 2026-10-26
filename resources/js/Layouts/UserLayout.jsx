@@ -227,13 +227,23 @@ export default function UserLayout({ children, title, onOpenAvailabilityModal })
                                 <div className="absolute right-0 mt-3.5 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 py-3">
                                     <div className="px-4 pb-2 border-b border-slate-100 flex justify-between items-center">
                                         <span className="text-xs font-bold text-slate-900">Notifications</span>
-                                        <Link 
-                                            href="/notifications" 
-                                            onClick={() => setIsNotificationOpen(false)}
-                                            className="text-[10px] text-[#0077CC] hover:underline font-bold"
-                                        >
-                                            View all
-                                        </Link>
+                                        <div className="flex items-center gap-3">
+                                            {unreadCount > 0 && (
+                                                <button
+                                                    onClick={() => router.post('/notifications/read-all', {}, { preserveScroll: true })}
+                                                    className="text-[10px] text-slate-500 hover:text-slate-800 font-semibold cursor-pointer"
+                                                >
+                                                    Mark all read
+                                                </button>
+                                            )}
+                                            <Link 
+                                                href="/notifications" 
+                                                onClick={() => setIsNotificationOpen(false)}
+                                                className="text-[10px] text-[#0077CC] hover:underline font-bold"
+                                            >
+                                                View all
+                                            </Link>
+                                        </div>
                                     </div>
                                     <div className="p-2 text-center text-xs text-slate-500">
                                         {unreadCount > 0 ? (
@@ -327,11 +337,6 @@ export default function UserLayout({ children, title, onOpenAvailabilityModal })
 
                 {/* Main Content Area */}
                 <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6">
-                    {title && (
-                        <div className="flex items-center justify-between mb-2">
-                            <h1 className="text-2xl font-title font-black text-[#0b1c30] tracking-tight">{title}</h1>
-                        </div>
-                    )}
                     {children}
                 </main>
             </div>

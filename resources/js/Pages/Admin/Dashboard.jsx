@@ -33,7 +33,11 @@ export default function Dashboard({
 
     return (
         <AdminLayout title="Dashboard Analytics & Overview">
-            <Head title="Admin Dashboard - PlayZa" />
+            {/* Page Header */}
+            <div className="mb-6">
+                <h2 className="text-xl font-title font-black text-[#0b1c30]">Dashboard Analytics & Overview</h2>
+                <p className="text-xs text-slate-500 font-medium mt-1">Real-time facility utilization, metrics, and pending approval alerts.</p>
+            </div>
 
             {/* Stat Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

@@ -1,29 +1,12 @@
 import React, { useState } from 'react';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import AvailabilityModal from '@/Components/AvailabilityModal';
 
-export default function Reservations({ reservations = [], facilities = [] }) {
+export default function Reservations({ reservations = [], facilities = [], schedules = [] }) {
     const [filter, setFilter] = useState('all');
     const [search, setSearch] = useState('');
     const [isEventModalOpen, setIsEventModalOpen] = useState(false);
-
-    const { data, setData, post, reset, errors, processing } = useForm({
-        facility_id: facilities[0]?.id || '',
-        reservation_date: '',
-        end_date: '',
-        start_time: '08:00',
-        end_time: '17:00',
-        duration_hours: 9,
-        event_type: 'Tournament',
-        custom_event_name: 'Intramurals',
-        organization_or_school: '',
-        contact_person: '',
-        contact_number: '',
-    });
-
-    const activeFac = facilities.find(f => String(f.id) === String(data.facility_id)) || facilities[0] || null;
-    const openH = parseInt((activeFac?.opening_time || '08:00').split(':')[0], 10);
-    const closeH = parseInt((activeFac?.closing_time || '22:00').split(':')[0], 10);
 
     const handleApprove = (id) => {
         router.patch(route('admin.reservations.approve', id));
@@ -43,25 +26,6 @@ export default function Reservations({ reservations = [], facilities = [] }) {
         if (confirm('Are you sure you want to flag this reservation as NO SHOW? The user will be notified.')) {
             router.patch(route('admin.reservations.no-show', id));
         }
-    };
-
-    const handleTimeChange = (start, end) => {
-        setData(prev => {
-            const startH = parseInt(start.split(':')[0] || '0', 10);
-            const endH = parseInt(end.split(':')[0] || '0', 10);
-            const duration = Math.max(1, endH - startH);
-            return { ...prev, start_time: start, end_time: end, duration_hours: duration };
-        });
-    };
-
-    const handleEventSubmit = (e) => {
-        e.preventDefault();
-        post(route('admin.reservations.store'), {
-            onSuccess: () => {
-                setIsEventModalOpen(false);
-                reset();
-            }
-        });
     };
 
     const filteredReservations = reservations.filter(res => {
@@ -84,13 +48,8 @@ export default function Reservations({ reservations = [], facilities = [] }) {
                         <p className="text-xs text-slate-500 font-medium mt-1">Approve user requests, mark attendance/no-show, or reserve facilities for Tournaments & Intramurals.</p>
                     </div>
                     <button
-                        onClick={() => {
-                            if (facilities.length > 0 && !data.facility_id) {
-                                setData('facility_id', facilities[0].id);
-                            }
-                            setIsEventModalOpen(true);
-                        }}
-                        className="px-5 py-3 bg-[#0b1c30] hover:bg-[#132c4a] text-white rounded-xl text-xs font-extrabold shadow-md transition-all flex items-center gap-2 self-start sm:self-auto hover-scale"
+                        onClick={() => setIsEventModalOpen(true)}
+                        className="px-5 py-3 bg-[#0b1c30] hover:bg-[#132c4a] text-white rounded-xl text-xs font-extrabold shadow-md transition-all flex items-center gap-2 self-start sm:self-auto hover-scale cursor-pointer"
                     >
                         <svg className="h-4 w-4 text-[#add911]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -229,7 +188,7 @@ export default function Reservations({ reservations = [], facilities = [] }) {
                                                     </button>
                                                 )}
 
-                                                {res.status !== 'cancelled' && (
+                                                {res.status !== 'cancelled' && res.status !== 'no_show' && res.status !== 'rejected' && (
                                                     <button
                                                         onClick={() => handleCancel(res.id)}
                                                         className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors"
@@ -253,223 +212,15 @@ export default function Reservations({ reservations = [], facilities = [] }) {
                 </div>
             </div>
 
-            {/* Tournament / Custom Event Reservation Modal */}
-            {isEventModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-                    <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-6">
-                        <div className="flex items-center justify-between border-b pb-4">
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900">
-                                    Reserve Facility for Event / Intrams
-                                </h3>
-                                <p className="text-xs text-slate-500">Sports Administrator & Admin Event Booking</p>
-                            </div>
-                            <button onClick={() => setIsEventModalOpen(false)} className="text-slate-400 hover:text-slate-600">✕</button>
-                        </div>
-
-                        <form onSubmit={handleEventSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Select Facility</label>
-                                <select
-                                    value={data.facility_id}
-                                    onChange={(e) => setData('facility_id', e.target.value)}
-                                    className="w-full px-3 py-2 border rounded-xl text-sm"
-                                    required
-                                >
-                                    {facilities.map((fac) => (
-                                        <option key={fac.id} value={fac.id}>
-                                            {fac.name} ({fac.type})
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Event Category</label>
-                                    <select
-                                        value={data.event_type}
-                                        onChange={(e) => setData('event_type', e.target.value)}
-                                        className="w-full px-3 py-2 border rounded-xl text-sm"
-                                    >
-                                        <option value="Tournament">Tournament</option>
-                                        <option value="Intramurals">Intramurals</option>
-                                        <option value="Exhibition">Exhibition Match</option>
-                                        <option value="Others">Others</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Event Title / Name</label>
-                                    <input
-                                        type="text"
-                                        value={data.custom_event_name}
-                                        onChange={(e) => setData('custom_event_name', e.target.value)}
-                                        placeholder="e.g. CDG Intramurals 2026"
-                                        className="w-full px-3 py-2 border rounded-xl text-sm"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Start Date</label>
-                                    <input
-                                        type="date"
-                                        value={data.reservation_date}
-                                        onChange={(e) => setData('reservation_date', e.target.value)}
-                                        className="w-full px-3 py-2 border rounded-xl text-sm"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">End Date (Multi-Day)</label>
-                                    <input
-                                        type="date"
-                                        value={data.end_date}
-                                        min={data.reservation_date}
-                                        onChange={(e) => setData('end_date', e.target.value)}
-                                        placeholder="Same as start date if 1 day"
-                                        className="w-full px-3 py-2 border rounded-xl text-sm"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Organization / School and Contact Details */}
-                            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                                        <svg className="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                        </svg>
-                                        Organization / School Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={data.organization_or_school}
-                                        onChange={(e) => setData('organization_or_school', e.target.value)}
-                                        placeholder="e.g. Getafe National High School / Barangay Youth"
-                                        className="w-full px-3 py-2 border rounded-xl text-sm bg-white"
-                                    />
-                                    {errors.organization_or_school && <div className="text-xs text-rose-500 mt-1">{errors.organization_or_school}</div>}
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                                            <svg className="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                            </svg>
-                                            Contact Person
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={data.contact_person}
-                                            onChange={(e) => setData('contact_person', e.target.value)}
-                                            placeholder="e.g. Coach Juan Dela Cruz"
-                                            className="w-full px-3 py-2 border rounded-xl text-sm bg-white"
-                                        />
-                                        {errors.contact_person && <div className="text-xs text-rose-500 mt-1">{errors.contact_person}</div>}
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                                            <svg className="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                            </svg>
-                                            Contact Number
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={data.contact_number}
-                                            onChange={(e) => setData('contact_number', e.target.value)}
-                                            placeholder="e.g. 0912-345-6789"
-                                            className="w-full px-3 py-2 border rounded-xl text-sm bg-white"
-                                        />
-                                        {errors.contact_number && <div className="text-xs text-rose-500 mt-1">{errors.contact_number}</div>}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                                        Start Time (Open: {activeFac?.opening_time || '08:00'})
-                                    </label>
-                                    <select
-                                        value={data.start_time}
-                                        onChange={(e) => handleTimeChange(e.target.value, data.end_time)}
-                                        className="w-full px-3 py-2 border rounded-xl text-sm bg-white font-semibold"
-                                        required
-                                    >
-                                        {Array.from({ length: Math.max(1, closeH - openH) }, (_, i) => openH + i).map(h => {
-                                            const timeStr = `${String(h).padStart(2, '0')}:00`;
-                                            const h12 = h % 12 || 12;
-                                            const sfx = h < 12 ? 'AM' : 'PM';
-                                            return (
-                                                <option key={timeStr} value={timeStr}>
-                                                    {h12}:00 {sfx}
-                                                </option>
-                                            );
-                                        })}
-                                    </select>
-                                    {errors.start_time && <div className="text-xs text-rose-500 mt-1">{errors.start_time}</div>}
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                                        End Time (Close: {activeFac?.closing_time || '22:00'})
-                                    </label>
-                                    <select
-                                        value={data.end_time}
-                                        onChange={(e) => handleTimeChange(data.start_time, e.target.value)}
-                                        className="w-full px-3 py-2 border rounded-xl text-sm bg-white font-semibold"
-                                        required
-                                    >
-                                        {Array.from({ length: Math.max(1, closeH - openH) }, (_, i) => openH + 1 + i).map(h => {
-                                            const timeStr = `${String(h).padStart(2, '0')}:00`;
-                                            const startH = parseInt(data.start_time.split(':')[0], 10) || openH;
-                                            const startH12 = startH % 12 || 12;
-                                            const endH12 = h % 12 || 12;
-                                            const sfx = h < 12 ? 'AM' : 'PM';
-                                            const startSfx = startH < 12 ? 'AM' : 'PM';
-                                            const label = startSfx === sfx ? `${startH12} - ${endH12} ${sfx}` : `${startH12} ${startSfx} - ${endH12} ${sfx}`;
-                                            return (
-                                                <option key={timeStr} value={timeStr}>
-                                                    {label} ({h - startH} hr{h - startH > 1 ? 's' : ''})
-                                                </option>
-                                            );
-                                        })}
-                                    </select>
-                                    {errors.end_time && <div className="text-xs text-rose-500 mt-1">{errors.end_time}</div>}
-                                </div>
-                            </div>
-
-                            <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs font-semibold text-amber-800 flex items-center gap-1.5">
-                                <svg className="w-4 h-4 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
-                                <span>Admin Tournament / Intrams events bypass regular facility max hours limits.</span>
-                            </div>
-
-                            <div className="flex justify-end gap-3 pt-4 border-t">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsEventModalOpen(false)}
-                                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={processing}
-                                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-semibold shadow-sm"
-                                >
-                                    Confirm Event Reservation
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            {/* Tournament / Custom Event Reservation Modal using AvailabilityModal */}
+            <AvailabilityModal
+                isOpen={isEventModalOpen}
+                onClose={() => setIsEventModalOpen(false)}
+                facilities={facilities}
+                facility={facilities[0]}
+                reservations={reservations}
+                schedules={schedules}
+            />
         </div>
     </AdminLayout>
 );

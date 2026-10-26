@@ -35,6 +35,18 @@ const EVENT_TYPES = [
     'Others',
 ];
 
+const ADMIN_EVENT_TYPES = [
+    'Tournament',
+    'Intramurals',
+    'Exhibition Match',
+    'Graduation',
+    'Meeting',
+    'Meeting de Avance',
+    'Wedding',
+    'Birthday',
+    'Others',
+];
+
 export default function AvailabilityModal({
     isOpen,
     onClose,
@@ -48,6 +60,7 @@ export default function AvailabilityModal({
 }) {
     const { auth, errors = {} } = usePage().props;
     const currentUser = user || auth?.user || null;
+    const isAdmin = currentUser?.role === 'admin';
 
     const today = formatYMD(new Date());
     const currentHour = new Date().getHours();
@@ -60,7 +73,7 @@ export default function AvailabilityModal({
     const [viewMonth, setViewMonth] = useState(() => new Date());
     const [selection, setSelection] = useState(() => newSelection(today));
     const { startDate, endDate } = selection;
-    const [eventType, setEventType] = useState(EVENT_TYPES[1]);
+    const [eventType, setEventType] = useState(isAdmin ? 'Tournament' : EVENT_TYPES[1]);
     const [customEventName, setCustomEventName] = useState('');
     const [organizationOrSchool, setOrganizationOrSchool] = useState('');
     const [contactPerson, setContactPerson] = useState('');
@@ -92,12 +105,14 @@ export default function AvailabilityModal({
             const nextClose = parseInt((targetFac.closing_time || '22:00').split(':')[0], 10);
             const minStart = startDate === today ? Math.max(nextOpen, currentHour + 1) : nextOpen;
             const newStart = Math.min(Math.max(startHour, minStart), nextClose - 1);
-            const maxDur = targetFac.max_hours || 2;
+            const maxDur = isAdmin ? Math.min(9, nextClose - newStart) : (targetFac.max_hours || 2);
             const newEnd = Math.min(newStart + maxDur, nextClose);
             setStartHour(newStart);
             setEndAbsHour(newEnd);
             if (targetFac.event_options && targetFac.event_options.length > 0) {
                 setEventType(targetFac.event_options[0]);
+            } else if (isAdmin) {
+                setEventType('Tournament');
             }
         }
     };
@@ -138,8 +153,8 @@ export default function AvailabilityModal({
 
     const serverError = errors.facility_id || errors.reservation_date || errors.start_time || errors.end_time;
 
-    const maxHours = activeFacility?.max_hours || null;
-    const exceedsMaxHours = Boolean(maxHours && hoursPerDay > maxHours);
+    const maxHours = isAdmin ? null : (activeFacility?.max_hours || null);
+    const exceedsMaxHours = Boolean(!isAdmin && maxHours && hoursPerDay > maxHours);
 
     const startsInPast = startDate === today && startHour <= currentHour;
     const canSubmit = Boolean(
@@ -148,7 +163,7 @@ export default function AvailabilityModal({
 
     /* ---------- effects ---------- */
 
-    const facilityMaxHours = activeFacility?.max_hours || null;
+    const facilityMaxHours = isAdmin ? null : (activeFacility?.max_hours || null);
 
     useEffect(() => {
         if (!isOpen) {
@@ -252,8 +267,10 @@ export default function AvailabilityModal({
         if (!canSubmit) return;
         setSubmitting(true);
 
+        const targetRoute = isAdmin ? route('admin.reservations.store') : route('reservations.store');
+
         router.post(
-            route('reservations.store'),
+            targetRoute,
             {
                 facility_id: activeFacility.id,
                 reservation_date: startDate,
@@ -261,9 +278,9 @@ export default function AvailabilityModal({
                 start_time: padTime(startHour),
                 end_time: padTime(endAbsHour),
                 duration_hours: totalHours,
-                event_type: activeFacility.requires_event_type ? eventType : null,
+                event_type: (activeFacility.requires_event_type || isAdmin) ? eventType : null,
                 custom_event_name:
-                    activeFacility.requires_event_type && eventType === 'Others' ? customEventName.trim() : null,
+                    (activeFacility.requires_event_type || isAdmin) && eventType === 'Others' ? customEventName.trim() : null,
                 organization_or_school: organizationOrSchool.trim() || null,
                 contact_person: contactPerson.trim() || null,
                 contact_number: contactNumber.trim() || null,
@@ -442,7 +459,7 @@ export default function AvailabilityModal({
                     <div className="flex items-center gap-3 min-w-0">
                         <div className="min-w-0">
                             <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-[#0077CC]">
-                                Check Availability
+                                {isAdmin ? 'Admin Booking & Availability' : 'Check Availability'}
                             </p>
                             <h2 className="text-base sm:text-lg font-title font-black text-[#0b1c30] truncate leading-tight">
                                 {activeFacility.name}
@@ -543,10 +560,10 @@ export default function AvailabilityModal({
                                 const dotColor = isSelected
                                     ? 'bg-white'
                                     : level === 'full'
-                                      ? 'bg-slate-300'
-                                      : level === 'limited'
-                                        ? 'bg-amber-500'
-                                        : 'bg-emerald-500';
+                                        ? 'bg-slate-300'
+                                        : level === 'limited'
+                                            ? 'bg-amber-500'
+                                            : 'bg-emerald-500';
 
                                 return (
                                     <button
@@ -558,9 +575,8 @@ export default function AvailabilityModal({
                                             beginSelect(cell.dateStr);
                                         }}
                                         onPointerEnter={() => extendSelect(cell.dateStr)}
-                                        className={`aspect-square rounded-md sm:rounded-lg flex flex-col items-center justify-center text-[10px] sm:text-xs font-bold transition-colors border touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-[#0077CC] focus-visible:ring-offset-1 ${
-                                            isToday && !isSelected ? 'border-[#0077CC]' : 'border-transparent'
-                                        } ${tone}`}
+                                        className={`aspect-square rounded-md sm:rounded-lg flex flex-col items-center justify-center text-[10px] sm:text-xs font-bold transition-colors border touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-[#0077CC] focus-visible:ring-offset-1 ${isToday && !isSelected ? 'border-[#0077CC]' : 'border-transparent'
+                                            } ${tone}`}
                                     >
                                         <span className="leading-none">{cell.day}</span>
                                         {!isPast && <span className={`w-1 h-1 rounded-full mt-0.5 ${dotColor}`} />}
@@ -613,10 +629,6 @@ export default function AvailabilityModal({
                                 </>
                             )}
                         </p>
-
-                        <span className="block text-[10.5px] font-black uppercase tracking-wider text-slate-500 mb-2.5">
-                            Start Time → End Time
-                        </span>
 
                         <div className="space-y-3">
                             <div>
@@ -689,9 +701,9 @@ export default function AvailabilityModal({
                                                 width: `${width}%`,
                                                 ...(w.type === 'blocked' || w.type === 'past'
                                                     ? {
-                                                          background:
-                                                              'repeating-linear-gradient(45deg,#FDECC8,#FDECC8 6px,#F6DFB4 6px,#F6DFB4 10px)',
-                                                      }
+                                                        background:
+                                                            'repeating-linear-gradient(45deg,#FDECC8,#FDECC8 6px,#F6DFB4 6px,#F6DFB4 10px)',
+                                                    }
                                                     : { background: '#E2E8F0' }),
                                             }}
                                         />
@@ -701,9 +713,8 @@ export default function AvailabilityModal({
                                 {hoursPerDay > 0 && (
                                     <div
                                         onPointerDown={(e) => handleTimelinePointerDown(e, 'move')}
-                                        className={`absolute -top-1 -bottom-1 rounded-lg border-2 shadow-md touch-none cursor-grab active:cursor-grabbing transition-shadow ${
-                                            conflict ? 'border-rose-500 bg-rose-500/25' : 'border-[#0077CC] bg-[#0077CC]/25'
-                                        }`}
+                                        className={`absolute -top-1 -bottom-1 rounded-lg border-2 shadow-md touch-none cursor-grab active:cursor-grabbing transition-shadow ${conflict ? 'border-rose-500 bg-rose-500/25' : 'border-[#0077CC] bg-[#0077CC]/25'
+                                            }`}
                                         style={{
                                             left: `${((startHour - timelineFrom) / timelineSpan) * 100}%`,
                                             width: `${(hoursPerDay / timelineSpan) * 100}%`,
@@ -729,16 +740,14 @@ export default function AvailabilityModal({
                                         )}
 
                                         <span
-                                            className={`absolute -top-6 left-0 text-[11px] font-black whitespace-nowrap ${
-                                                conflict ? 'text-rose-600' : 'text-[#0077CC]'
-                                            }`}
+                                            className={`absolute -top-6 left-0 text-[11px] font-black whitespace-nowrap ${conflict ? 'text-rose-600' : 'text-[#0077CC]'
+                                                }`}
                                         >
                                             {hourLabel(startHour)}
                                         </span>
                                         <span
-                                            className={`absolute -bottom-6 right-0 text-[11px] font-black whitespace-nowrap ${
-                                                conflict ? 'text-rose-600' : 'text-[#0077CC]'
-                                            }`}
+                                            className={`absolute -bottom-6 right-0 text-[11px] font-black whitespace-nowrap ${conflict ? 'text-rose-600' : 'text-[#0077CC]'
+                                                }`}
                                         >
                                             {hourLabel(endAbsHour)}
                                         </span>
@@ -768,9 +777,9 @@ export default function AvailabilityModal({
                                         style={
                                             label === 'Blocked'
                                                 ? {
-                                                      background:
-                                                          'repeating-linear-gradient(45deg,#FDECC8,#FDECC8 2px,#F6D9A8 2px,#F6D9A8 4px)',
-                                                  }
+                                                    background:
+                                                        'repeating-linear-gradient(45deg,#FDECC8,#FDECC8 2px,#F6D9A8 2px,#F6D9A8 4px)',
+                                                }
                                                 : undefined
                                         }
                                     />
@@ -829,26 +838,27 @@ export default function AvailabilityModal({
                             </div>
                         )}
 
-                        {activeFacility.requires_event_type && (
+                        {(activeFacility.requires_event_type || isAdmin) && (
                             <div className="mt-6">
                                 <span className="block text-[10.5px] font-black uppercase tracking-wider text-slate-500 mb-2.5">
-                                    What is this booking for?
+                                    {isAdmin ? 'Event Category' : 'What is this booking for?'}
                                 </span>
                                 <div className="flex flex-wrap gap-2">
                                     {(
-                                        (activeFacility.event_options && activeFacility.event_options.length > 0)
-                                            ? activeFacility.event_options
-                                            : EVENT_TYPES
+                                        isAdmin
+                                            ? ADMIN_EVENT_TYPES
+                                            : (activeFacility.event_options && activeFacility.event_options.length > 0)
+                                                ? activeFacility.event_options
+                                                : EVENT_TYPES
                                     ).map((type) => (
                                         <button
                                             key={type}
                                             type="button"
                                             onClick={() => setEventType(type)}
-                                            className={`px-3.5 h-9 rounded-xl border text-xs font-extrabold transition-colors ${
-                                                eventType === type
-                                                    ? 'border-[#0077CC] bg-[#0077CC] text-white'
-                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                                            }`}
+                                            className={`px-3.5 h-9 rounded-xl border text-xs font-extrabold transition-colors ${eventType === type
+                                                ? 'border-[#0077CC] bg-[#0077CC] text-white'
+                                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                                                }`}
                                         >
                                             {type}
                                         </button>
@@ -943,7 +953,7 @@ export default function AvailabilityModal({
                             disabled={!canSubmit}
                             className="w-full sm:w-auto h-12 px-6 rounded-xl bg-[#0b1c30] hover:bg-[#132c4a] text-white text-sm font-extrabold shadow-md transition-all active:scale-[0.99] disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center gap-2 shrink-0"
                         >
-                            {submitting ? 'Sending…' : 'Request Booking'}
+                            {submitting ? 'Sending…' : (isAdmin ? 'Confirm Event Reservation' : 'Request Booking')}
                             <span className="text-[#add911]">→</span>
                         </button>
                     ) : (
